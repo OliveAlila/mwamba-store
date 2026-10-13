@@ -181,7 +181,7 @@ function App() {
 
   useEffect(() => {
     loadStorefront();
-    const pathname = window.location.pathname.replace(/\\/+$/, '') || '/';
+    const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
     const isAdminPath = pathname === '/admin';
     loadCurrentUser().then(currentUser => {
       if (isAdminPath) {
