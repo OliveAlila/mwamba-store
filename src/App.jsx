@@ -127,6 +127,8 @@ function App() {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [previewMode, setPreviewMode] = useState(false);
+  const [dealEndsAt, setDealEndsAt] = useState(null);
+  const [dealSecondsLeft, setDealSecondsLeft] = useState(0);
   const [productError, setProductError] = useState('');
   const [adminSummary, setAdminSummary] = useState(null);
   const [adminProducts, setAdminProducts] = useState([]);
@@ -215,6 +217,32 @@ function App() {
       setAdminBusy(false);
     }
   };
+
+  useEffect(() => {
+    let mounted = true;
+    const loadDealTimer = async () => {
+      try {
+        const result = await api('/api/deals/timer');
+        if (mounted) setDealEndsAt(result.ends_at ? new Date(result.ends_at).getTime() : null);
+      } catch {
+        if (mounted) setDealEndsAt(null);
+      }
+    };
+    loadDealTimer();
+    const refresh = window.setInterval(loadDealTimer, 60000);
+    return () => { mounted = false; window.clearInterval(refresh); };
+  }, []);
+
+  useEffect(() => {
+    if (!dealEndsAt || !Number.isFinite(dealEndsAt)) {
+      setDealSecondsLeft(0);
+      return undefined;
+    }
+    const tick = () => setDealSecondsLeft(Math.max(0, Math.floor((dealEndsAt - Date.now()) / 1000)));
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [dealEndsAt]);
 
   useEffect(() => {
     loadStorefront();
@@ -570,7 +598,7 @@ function App() {
 
       <section className="category-section"><div className="section-heading"><div><span className="eyebrow">FIND YOUR NEXT FAVOURITE</span><h2>Browse by category</h2></div><button className="text-link" onClick={()=>goCategory('All products')}>All categories <ArrowRight size={16}/></button></div><div className="category-grid">{(categoryData.length ? [...categories.filter(c => categoryData.some(live => live.name === c.name)), ...categoryData.filter(live => !categories.some(c => c.name === live.name)).map(live => ({ name: live.name, color: 'lavender', image: '', icon: Tag }))] : categories).map(({name,color,image,icon:Icon})=><button className="category-tile" key={name} onClick={()=>goCategory(name)}><span className={'category-illustration '+(color || 'lavender')}><Icon size={27}/>{image&&<img src={image} alt="" loading="eager" decoding="async" onError={e=>{e.currentTarget.remove();}} />}</span><b>{name}</b><small>{products.filter(p=>p.category===name).length} items</small></button>)}</div></section>
 
-      <section className="deal-banner"><div className="deal-mark"><Zap size={24} fill="currentColor"/></div><div className="deal-copy"><span>THE DAILY DROP</span><h2>Little prices. Big energy.</h2><p>Handpicked deals for your everyday.</p></div><div className="deal-countdown"><span>THIS WEEK'S FINDS</span><div><b>01</b><i>:</i><b>24</b><i>:</i><b>36</b></div><small>Hours&nbsp;&nbsp;&nbsp; Mins&nbsp;&nbsp;&nbsp; Secs</small></div><button onClick={()=>{setActiveCategory('All products');setSort('price-low');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>Shop the deals <ArrowRight size={17}/></button><div className="deal-decoration">✳</div></section>
+      <section className="deal-banner"><div className="deal-mark"><Zap size={24} fill="currentColor"/></div><div className="deal-copy"><span>THE DAILY DROP</span><h2>Little prices. Big energy.</h2><p>Handpicked deals for your everyday.</p></div><div className="deal-countdown"><span>THIS WEEK'S FINDS</span><div><b>{String(Math.floor(dealSecondsLeft / 3600)).padStart(2, '0')}</b><i>:</i><b>{String(Math.floor((dealSecondsLeft % 3600) / 60)).padStart(2, '0')}</b><i>:</i><b>{String(dealSecondsLeft % 60).padStart(2, '0')}</b></div><small>Hours&nbsp;&nbsp;&nbsp; Mins&nbsp;&nbsp;&nbsp; Secs</small></div><button onClick={()=>{setActiveCategory('All products');setSort('price-low');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>Shop the deals <ArrowRight size={17}/></button><div className="deal-decoration">✳</div></section>
 
       <section className="products-section" id="products"><div className="section-heading product-heading"><div><span className="eyebrow">GOOD FINDS, PICKED FOR YOU</span><h2>{activeCategory==='All products'?'Popular right now':activeCategory}</h2><p>Everyday essentials and little luxuries worth discovering.</p></div><div className="product-tools"><label><SlidersHorizontal size={16}/><select value={sort} onChange={e=>setSort(e.target.value)}><option value="featured">Featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="rating">Top rated</option></select></label></div></div>
         {productError&&<div className="empty-state"><h3>We couldn't load the catalogue</h3><p>{productError}</p><button className="dark-btn" onClick={loadStorefront}>Try again</button></div>}

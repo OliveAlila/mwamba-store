@@ -10,7 +10,7 @@ import productRoutes from './products.js';
 import categoryRoutes from './categories.js';
 import paymentRoutes from './payments.js';
 import adminRoutes from './admin.js';
-import { pingDatabase } from './db.js';
+import { pingDatabase, query } from './db.js';
 import { requireAdmin, requireAuth, requireSameOrigin } from './security.js';
 
 const app = express();
@@ -29,7 +29,11 @@ const trustProxySetting = (() => {
 })();
 app.set('trust proxy', trustProxySetting);
 app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+    directives: {
+      imgSrc: ["'self'", 'data:', 'https://images.unsplash.com'],
+    },
+  } : false,
   crossOriginEmbedderPolicy: false,
 }));
 app.use(express.json({ limit: '100kb' }));
@@ -94,6 +98,23 @@ app.get('/api/health', async (_req, res) => {
     return res.status(503).json({ status: 'degraded', service: 'mwamba-store-api', database: 'unavailable' });
   }
 });
+app.get('/api/deals/timer', async (_req, res) => {
+  try {
+    const rows = await query(
+      `SELECT ends_at FROM promotions
+       WHERE is_active = 1
+         AND ends_at IS NOT NULL
+         AND ends_at > UTC_TIMESTAMP()
+         AND (starts_at IS NULL OR starts_at <= UTC_TIMESTAMP())
+       ORDER BY ends_at ASC LIMIT 1`
+    );
+    return res.json({ ends_at: rows[0]?.ends_at || null });
+  } catch (error) {
+    console.error('[deals/timer] lookup failed:', error?.code || error?.name || 'UNKNOWN_DATABASE_ERROR');
+    return res.json({ ends_at: null });
+  }
+});
+
 app.get('/api/config/public', (_req, res) => {
   res.json({
     currency: process.env.STORE_CURRENCY || 'KES',

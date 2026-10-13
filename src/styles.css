@@ -251,3 +251,9 @@
   .category-dropdown { left:16px; }
   .hero-layout { display:block; margin-top:12px; }
 }
+
+
+/* Countdown digits remain legible and align consistently at zero or while active. */
+.deal-countdown > div { display:flex; align-items:center; gap:5px; }
+.deal-countdown > div b { min-width:38px; text-align:center; font-variant-numeric:tabular-nums; }
+.deal-countdown > div i { font-style:normal; opacity:.8; }
