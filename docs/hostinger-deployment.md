@@ -60,7 +60,7 @@ Do not take live payments until all of the following are true:
 3. `PAYSTACK_CALLBACK_URL` is set to a real public HTTPS return page on the same site.
 4. You have verified a test payment end to end and implemented/validated the payment-return UX and provider webhook/reconciliation process.
 
-The current frontend starts Paystack initialization, but the dedicated return page and webhook/reconciliation flow still need implementation and testing. Do not use a live Paystack secret or advertise checkout as production-ready until then.
+The frontend includes a return page at `/payment/return` that asks the server to verify the reference, but the full flow has not been tested against Paystack. A provider webhook/reconciliation flow is still missing. Do not use a live Paystack secret or advertise checkout as production-ready until test transactions, callback behavior, failure cases, and reconciliation have been validated.
 
 ## 7. If the frontend is hosted separately
 
