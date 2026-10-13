@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Search, ShoppingCart, Heart, UserRound, Menu, ChevronRight, ChevronDown,
   Zap, Truck, ShieldCheck, Headphones, Star, Plus, Minus, X, Package,
@@ -32,6 +32,7 @@ const initialProducts = [
 ];
 
 const money = value => 'KSh ' + Number(value).toLocaleString('en-KE');
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
 function Brand() {
   return <div className="brand-lockup"><span className="brand-mark">m<span>.</span></span><span className="brand-name">mwamba<span>store</span></span></div>;
@@ -66,7 +67,36 @@ function App() {
   const [adminTab, setAdminTab] = useState('Overview');
   const [showAll, setShowAll] = useState(false);
   const [notice, setNotice] = useState('');
-  const products = initialProducts;
+  const [catalogueProducts, setCatalogueProducts] = useState(import.meta.env.DEV ? initialProducts : []);
+  const [catalogueError, setCatalogueError] = useState('');
+  const products = catalogueProducts;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_BASE}/api/products`, { headers: { Accept: 'application/json' }, signal: controller.signal })
+      .then(response => {
+        if (!response.ok) throw new Error(`Catalogue request failed (${response.status}).`);
+        return response.json();
+      })
+      .then(data => {
+        if (!Array.isArray(data.products)) throw new Error('The catalogue API returned an unexpected response.');
+        setCatalogueProducts(data.products.map(product => {
+          const price = Number(product.price);
+          const oldPrice = product.compare_at_price == null ? price : Number(product.compare_at_price);
+          return {
+            id: Number(product.id), name: product.name, category: product.category || 'Uncategorised',
+            price, oldPrice, rating: 0, reviews: 0,
+            badge: oldPrice > price ? `-${Math.round((1 - price / oldPrice) * 100)}%` : '',
+            art: '🛍️', tint: 'lavender', image: product.image_url || '',
+          };
+        }));
+        setCatalogueError('');
+      })
+      .catch(error => {
+        if (error.name !== 'AbortError') setCatalogueError('We could not load the live catalogue. Check the backend URL and API health, then refresh.');
+      });
+    return () => controller.abort();
+  }, []);
 
   const visibleProducts = useMemo(() => {
     let result = products.filter(p => (activeCategory === 'All products' || p.category === activeCategory) && (p.name.toLowerCase().includes(query.toLowerCase()) || p.category.toLowerCase().includes(query.toLowerCase())));
