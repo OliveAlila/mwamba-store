@@ -176,6 +176,7 @@ function App() {
   const [paymentError, setPaymentError] = useState('');
   const [returnMessage, setReturnMessage] = useState('');
   const [paymentReference, setPaymentReference] = useState(() => new URLSearchParams(window.location.search).get('reference') || '');
+  const [pathname, setPathname] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/');
 
   const loadStorefront = async () => {
     setLoadingProducts(true);
@@ -291,8 +292,9 @@ function App() {
 
   useEffect(() => {
     loadStorefront();
-    const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
-    const isAdminPath = pathname === '/admin';
+    const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    setPathname(currentPath);
+    const isAdminPath = currentPath === '/admin';
     loadCurrentUser().then(currentUser => {
       if (isAdminPath) {
         if (currentUser?.role === 'admin') setDrawer('admin');
@@ -394,6 +396,52 @@ function App() {
       setAuthBusy(false);
     }
   };
+
+  const navigateTo = path => {
+    const nextPath = path === '/' ? '/' : path.replace(/\/+$/, '');
+    if (window.location.pathname !== nextPath) window.history.pushState({}, '', nextPath);
+    setPathname(nextPath);
+    setDrawer('');
+    setNotice('');
+    if (nextPath === '/admin') {
+      if (user?.role === 'admin') {
+        setDrawer('admin');
+        setAdminTab('Overview');
+      } else {
+        setAuthMode('login');
+        setDrawer('account');
+        setNotice('Sign in with an administrator account to access the admin workspace.');
+      }
+    } else if (nextPath === '/login' || nextPath === '/register' || nextPath === '/account') {
+      setAuthMode(nextPath === '/register' ? 'register' : 'login');
+      setDrawer('account');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const onPopState = () => {
+      const nextPath = window.location.pathname.replace(/\/+$/, '') || '/';
+      setPathname(nextPath);
+      if (nextPath === '/admin') {
+        if (user?.role === 'admin') {
+          setDrawer('admin');
+          setAdminTab('Overview');
+          setNotice('');
+        } else {
+          setDrawer('account');
+          setNotice('Sign in with an administrator account to access the admin workspace.');
+        }
+      } else if (['/login', '/register', '/account'].includes(nextPath)) {
+        setAuthMode(nextPath === '/register' ? 'register' : 'login');
+        setDrawer('account');
+      } else {
+        setDrawer('');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [user]);
 
   const signOut = async () => {
     try { await api('/api/auth/logout', { method: 'POST', body: JSON.stringify({}) }); }
@@ -546,7 +594,7 @@ function App() {
     <aside className="admin-sidebar">
       <Brand /><div className="admin-label">STORE MANAGEMENT</div>
       {[['Overview',BarChart3],['Products',Boxes],['Categories',Tag],['Orders',ClipboardList],['Customers',Users],['Promotions',Tag],['Settings',Settings]].map(([name,Icon]) => <button key={name} className={adminTab===name?'admin-nav active':'admin-nav'} onClick={()=>setAdminTab(name)}><Icon size={18}/>{name}</button>)}
-      <div className="admin-side-bottom"><button className="admin-nav" onClick={()=>setDrawer('')}><ArrowRight size={18}/> Back to store</button><button className="admin-nav" onClick={signOut}><LogOut size={18}/> Sign out</button><p>MWAMBA STORE<br/><span>Admin workspace</span></p></div>
+      <div className="admin-side-bottom"><button className="admin-nav" onClick={()=>navigateTo('/')}><ArrowRight size={18}/> Back to store</button><button className="admin-nav" onClick={signOut}><LogOut size={18}/> Sign out</button><p>MWAMBA STORE<br/><span>Admin workspace</span></p></div>
     </aside>
     <main className="admin-main">
       <header className="admin-topbar"><div><span className="eyebrow">WORKSPACE / {adminTab.toUpperCase()}</span><h1>{adminTab}</h1></div><div className="admin-profile"><span className="avatar">{(user.name || 'A').slice(0,1).toUpperCase()}</span><div><b>{user.name}</b><small>Administrator</small></div><ChevronDown size={16}/></div></header>
@@ -678,7 +726,7 @@ function App() {
       {drawer==='checkout'&&<div className="checkout-content"><div className="checkout-summary"><h3>Order summary</h3>{cart.map(i=><div key={i.id}><span>{i.qty} × {i.name}</span><b>{money(i.qty*i.price)}</b></div>)}<div className="checkout-grand"><span>Subtotal</span><b>{money(cartTotal)}</b></div></div><form onSubmit={submitCheckout}><label>Full name<input name="full_name" value={user?.name || ''} readOnly required placeholder="Your full name"/></label><label>Phone number<input name="phone" required type="tel" placeholder="+254 7xx xxx xxx"/></label><label>Delivery location<input name="delivery_address" required minLength="5" maxLength="500" placeholder="Estate, town or delivery address"/></label><label>Payment method<select name="payment_method" defaultValue="paystack"><option value="paystack">Pay online (Paystack)</option><option value="delivery">Pay on delivery (not enabled)</option></select></label><button className="dark-btn full-btn" disabled={checkoutBusy}>{checkoutBusy?'Connecting to Paystack…':'Continue to payment'} <ArrowRight size={17}/></button></form><p className="secure-note"><ShieldCheck size={15}/> The server calculates the total and confirms payment.</p>{paymentError&&<small className="inline-notice">{paymentError}</small>}</div>}
     </aside></div>}
     {notice&&drawer===''&&<div className="toast"><span>✓</span>{notice}</div>}
-    <button className="admin-shortcut" title="Open admin workspace" onClick={()=>{if(user?.role==='admin'){setAdminTab('Overview');setDrawer('admin');}else{setDrawer('account');setNotice('Sign in with your administrator account to continue.');}}}><LayoutDashboard size={17}/><span>Admin</span></button>
+    <button className="admin-shortcut" title="Open admin workspace" onClick={()=>navigateTo('/admin')}><LayoutDashboard size={17}/><span>Admin</span></button>
   </div>;
 }
 
