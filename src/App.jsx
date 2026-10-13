@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { apiRequest } from './lib/api.js';
 import {
   Search, ShoppingCart, Heart, UserRound, Menu, ChevronRight, ChevronDown,
   Zap, Truck, ShieldCheck, Headphones, Star, Plus, Minus, X, Package,
@@ -38,18 +39,18 @@ function Brand() {
 }
 
 function ProductCard({ product, wished, onWish, onAdd }) {
-  const discount = Math.round((1 - product.price / product.oldPrice) * 100);
+  const discount = product.oldPrice > product.price ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
   return <article className="product-card">
     <div className="product-art-wrap">
-      <span className="sale-badge">{product.badge || `−${discount}%`}</span>
+      {(product.badge || discount > 0) && <span className="sale-badge">{product.badge || `−${discount}%`}</span>}
       <button className={`wish-btn ${wished ? 'is-wished' : ''}`} aria-label="Add to wishlist" onClick={() => onWish(product.id)}><Heart size={18} fill={wished ? 'currentColor' : 'none'} /></button>
       <div className={`product-art ${product.tint}`}><img src={product.image} alt={product.name} loading="lazy" onError={e => { e.currentTarget.hidden = true; e.currentTarget.nextElementSibling.hidden = false; }} /><span className="product-art-fallback" hidden>{product.art}</span></div>
     </div>
     <div className="product-info">
       <p className="product-category">{product.category}</p>
       <h3>{product.name}</h3>
-      <div className="rating"><Star size={13} fill="currentColor" /><b>{product.rating}</b><span>({product.reviews})</span></div>
-      <div className="price-line"><strong>{money(product.price)}</strong><del>{money(product.oldPrice)}</del></div>
+      {product.rating && product.reviews > 0 && <div className="rating"><Star size={13} fill="currentColor" /><b>{product.rating}</b><span>({product.reviews})</span></div>}
+      <div className="price-line"><strong>{money(product.price)}</strong>{product.oldPrice > product.price && <del>{money(product.oldPrice)}</del>}</div>
       <button className="add-cart" onClick={() => onAdd(product)}><Plus size={16} /> Add to cart</button>
     </div>
   </article>;
@@ -66,7 +67,41 @@ function App() {
   const [adminTab, setAdminTab] = useState('Overview');
   const [showAll, setShowAll] = useState(false);
   const [notice, setNotice] = useState('');
-  const products = initialProducts;
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [apiError, setApiError] = useState('');
+  const [user, setUser] = useState(null);
+  const [authMode, setAuthMode] = useState('login');
+  const [busy, setBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      apiRequest('/products'),
+      apiRequest('/auth/me').catch(() => null),
+    ]).then(([catalogue, session]) => {
+      if (cancelled) return;
+      const liveProducts = (catalogue.products || []).map(product => ({
+        ...product,
+        price: Number(product.price),
+        oldPrice: product.compare_at_price == null ? null : Number(product.compare_at_price),
+        rating: null,
+        reviews: 0,
+        badge: null,
+        art: '🛍️',
+        tint: 'lavender',
+        image: product.image_url || '',
+      }));
+      setProducts(liveProducts);
+      setUser(session?.user || null);
+    }).catch(error => {
+      if (!cancelled) setApiError(error.message || 'Could not load products from the store API.');
+    }).finally(() => {
+      if (!cancelled) setProductsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const visibleProducts = useMemo(() => {
     let result = products.filter(p => (activeCategory === 'All products' || p.category === activeCategory) && (p.name.toLowerCase().includes(query.toLowerCase()) || p.category.toLowerCase().includes(query.toLowerCase())));
@@ -133,7 +168,9 @@ function App() {
 
       <section className="products-section" id="products"><div className="section-heading product-heading"><div><span className="eyebrow">GOOD FINDS, PICKED FOR YOU</span><h2>{activeCategory==='All products'?'Popular right now':activeCategory}</h2><p>Everyday essentials and little luxuries worth discovering.</p></div><div className="product-tools"><label><SlidersHorizontal size={16}/><select value={sort} onChange={e=>setSort(e.target.value)}><option value="featured">Featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="rating">Top rated</option></select></label></div></div>
         <div className="product-grid">{visibleProducts.map(p=><ProductCard key={p.id} product={p} wished={wishlist.includes(p.id)} onWish={toggleWish} onAdd={addToCart}/>)}</div>
-        {visibleProducts.length===0&&<div className="empty-state"><Search size={30}/><h3>No products found</h3><p>Try a different search or choose another category.</p><button className="dark-btn" onClick={()=>{setQuery('');setActiveCategory('All products')}}>Clear filters</button></div>}
+        {productsLoading && <div className="empty-state"><p>Loading products from Mwamba Store…</p></div>}
+        {!productsLoading && apiError && <div className="empty-state"><h3>Store catalogue unavailable</h3><p>{apiError}</p><button className="dark-btn" onClick={()=>window.location.reload()}>Try again</button></div>}
+        {!productsLoading && !apiError && visibleProducts.length===0&&<div className="empty-state"><Search size={30}/><h3>No products found</h3><p>Try a different search or choose another category.</p><button className="dark-btn" onClick={()=>{setQuery('');setActiveCategory('All products')}}>Clear filters</button></div>}
         {visibleProducts.length>0&&<button className="load-more" onClick={()=>{setShowAll(!showAll);if(showAll)document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>{showAll?'Show fewer products':'Explore all products'} <ArrowRight size={16}/></button>}
       </section>
 
@@ -145,8 +182,8 @@ function App() {
     {drawer && <div className="drawer-backdrop" onClick={()=>setDrawer('')}><aside className="drawer" onClick={e=>e.stopPropagation()}><div className="drawer-header"><div><span className="eyebrow">MWAMBA STORE</span><h2>{drawer==='cart'?'Your shopping bag':drawer==='wishlist'?'Your wishlist':drawer==='checkout'?'Checkout':'Welcome to Mwamba'}</h2></div><button className="icon-btn" onClick={()=>setDrawer('')}><X size={22}/></button></div>
       {drawer==='cart'&&<>{cart.length===0?<div className="drawer-empty"><ShoppingCart size={35}/><h3>Your bag is waiting</h3><p>Find something you love and add it here.</p><button className="dark-btn" onClick={()=>setDrawer('')}>Keep exploring</button></div>:<><div className="drawer-items">{cart.map(item=><div className="drawer-item" key={item.id}><div className={'drawer-item-art '+item.tint}>{item.art}</div><div className="drawer-item-info"><b>{item.name}</b><strong>{money(item.price)}</strong><div className="qty-control"><button onClick={()=>changeQty(item.id,-1)}><Minus size={13}/></button><span>{item.qty}</span><button onClick={()=>changeQty(item.id,1)}><Plus size={13}/></button></div></div><button className="remove-item" onClick={()=>setCart(old=>old.filter(x=>x.id!==item.id))}><X size={16}/></button></div>)}</div><div className="drawer-total"><div><span>Subtotal</span><b>{money(cartTotal)}</b></div><small>Delivery fee calculated at checkout.</small><button className="dark-btn full-btn" onClick={startCheckout}>Continue to checkout <ArrowRight size={17}/></button></div></>}</>}
       {drawer==='wishlist'&&(wishlist.length===0?<div className="drawer-empty"><Heart size={35}/><h3>Keep the good finds close</h3><p>Tap the heart on a product to save it for later.</p><button className="dark-btn" onClick={()=>setDrawer('')}>Explore products</button></div>:<div className="drawer-items">{products.filter(p=>wishlist.includes(p.id)).map(p=><div className="drawer-item" key={p.id}><div className={'drawer-item-art '+p.tint}>{p.art}</div><div className="drawer-item-info"><b>{p.name}</b><strong>{money(p.price)}</strong><button className="mini-add" onClick={()=>addToCart(p)}>Add to cart</button></div><button className="remove-item" onClick={()=>toggleWish(p.id)}><X size={16}/></button></div>)}</div>)}
-      {drawer==='account'&&<div className="account-content"><div className="account-icon"><UserRound size={28}/></div><h3>Your Mwamba account</h3><p>Sign in to track orders, manage your details, and keep your favourite finds close.</p><form onSubmit={e=>{e.preventDefault();setNotice('Account authentication will be enabled when the backend is connected.');}}><label>Email address<input type="email" placeholder="you@example.com" required/></label><label>Password<input type="password" placeholder="Enter your password" required/></label><button className="dark-btn full-btn">Sign in <ArrowRight size={17}/></button></form><p className="auth-note">New to Mwamba? <button onClick={()=>setNotice('Registration will be enabled with the authentication backend.')}>Create an account</button></p>{notice&&<small className="inline-notice">{notice}</small>}<div className="account-links"><button onClick={()=>setNotice('Order history will appear after you sign in.') }><Package size={17}/> My orders <ChevronRight size={15}/></button><button onClick={()=>setNotice('Account settings will be available after sign in.') }><Settings size={17}/> Account settings <ChevronRight size={15}/></button><button onClick={()=>setDrawer('admin')}><LayoutDashboard size={17}/> Admin workspace <ChevronRight size={15}/></button></div></div>}
-      {drawer==='checkout'&&<div className="checkout-content"><div className="checkout-summary"><h3>Order summary</h3>{cart.map(i=><div key={i.id}><span>{i.qty} × {i.name}</span><b>{money(i.qty*i.price)}</b></div>)}<div className="checkout-grand"><span>Subtotal</span><b>{money(cartTotal)}</b></div></div><form onSubmit={e=>{e.preventDefault();setNotice('Checkout UI is ready; secure payment needs the server-side Paystack integration.');}}><label>Full name<input required placeholder="Your full name"/></label><label>Phone number<input required type="tel" placeholder="+254 7xx xxx xxx"/></label><label>Delivery location<input required placeholder="Estate, town or delivery address"/></label><label>Payment method<select defaultValue="paystack"><option value="paystack">Pay online (Paystack)</option><option value="delivery">Pay on delivery (configure availability)</option></select></label><button className="dark-btn full-btn">Continue to payment <ArrowRight size={17}/></button></form><p className="secure-note"><ShieldCheck size={15}/> Payment confirmation will be handled securely on the server.</p>{notice&&<small className="inline-notice">{notice}</small>}</div>}
+      {drawer==='account'&&<div className="account-content">{user ? <><div className="account-icon"><UserRound size={28}/></div><h3>Hello, {user.name}</h3><p>{user.email}</p><p className="auth-note">Signed in as {user.role}.</p><button className="dark-btn full-btn" disabled={busy} onClick={async()=>{setBusy(true);try{await apiRequest('/auth/logout',{method:'POST'});setUser(null);setNotice('You have signed out.');}catch(error){setNotice(error.message);}finally{setBusy(false);}}}><LogOut size={17}/> Sign out</button>{user.role==='admin'&&<button className="dark-btn full-btn" onClick={()=>setDrawer('admin')}>Open admin workspace</button>}</> : <><div className="account-icon"><UserRound size={28}/></div><h3>{authMode==='login'?'Your Mwamba account':'Create your account'}</h3><p>Sign in to track orders and check out securely.</p><form onSubmit={async e=>{e.preventDefault();setBusy(true);setNotice('');const form=new FormData(e.currentTarget);const payload={email:String(form.get('email')||''),password:String(form.get('password')||'')};if(authMode==='register')payload.name=String(form.get('name')||'');try{const result=await apiRequest(`/auth/${authMode}`,{method:'POST',body:JSON.stringify(payload)});setUser(result.user);setNotice(authMode==='register'?'Account created successfully.':'Welcome back!');}catch(error){setNotice(error.message||'Authentication failed.');}finally{setBusy(false);}}}>{authMode==='register'&&<label>Full name<input name="name" autoComplete="name" required minLength="2" maxLength="120" placeholder="Your full name"/></label>}<label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required/></label><label>Password<input name="password" type="password" autoComplete={authMode==='login'?'current-password':'new-password'} minLength={authMode==='register'?10:1} maxLength="72" placeholder="Enter your password" required/></label><button className="dark-btn full-btn" disabled={busy}>{busy?'Please wait…':authMode==='login'?'Sign in':'Create account'} <ArrowRight size={17}/></button></form><p className="auth-note">{authMode==='login'?'New to Mwamba?':'Already have an account?'} <button onClick={()=>{setAuthMode(authMode==='login'?'register':'login');setNotice('');}}>{authMode==='login'?'Create an account':'Sign in'}</button></p>{notice&&<small className="inline-notice">{notice}</small>}</> }<div className="account-links"><button onClick={()=>setNotice(user?'Order history API is not yet implemented.':'Sign in to view your orders.') }><Package size={17}/> My orders <ChevronRight size={15}/></button><button onClick={()=>setNotice('Account settings API is not yet implemented.') }><Settings size={17}/> Account settings <ChevronRight size={15}/></button></div></div>}
+      {drawer==='checkout'&&<div className="checkout-content"><div className="checkout-summary"><h3>Order summary</h3>{cart.map(i=><div key={i.id}><span>{i.qty} × {i.name}</span><b>{money(i.qty*i.price)}</b></div>)}<div className="checkout-grand"><span>Subtotal</span><b>{money(cartTotal)}</b></div></div>{!user&&<p className="inline-notice">Please sign in before checkout. <button onClick={()=>setDrawer('account')}>Sign in</button></p>}<form onSubmit={async e=>{e.preventDefault();setCheckoutError('');if(!user){setDrawer('account');setAuthMode('login');setCheckoutError('Sign in before continuing to payment.');return;}if(!cart.length){setCheckoutError('Your cart is empty.');return;}setBusy(true);const form=new FormData(e.currentTarget);try{const result=await apiRequest('/payments/initialize',{method:'POST',body:JSON.stringify({items:cart.map(item=>({product_id:item.id,quantity:item.qty})),phone:String(form.get('phone')||''),delivery_address:String(form.get('address')||'')})});if(!result.authorization_url)throw new Error('Payment provider did not return a checkout URL.');window.location.assign(result.authorization_url);}catch(error){setCheckoutError(error.message||'Could not start checkout.');}finally{setBusy(false);}}}><label>Phone number<input name="phone" required type="tel" minLength="7" maxLength="30" placeholder="+254 7xx xxx xxx"/></label><label>Delivery location<input name="address" required minLength="5" maxLength="500" placeholder="Estate, town or delivery address"/></label><button className="dark-btn full-btn" disabled={busy||!cart.length}>{busy?'Connecting to Paystack…':'Continue to payment'} <ArrowRight size={17}/></button></form><p className="secure-note"><ShieldCheck size={15}/> Final prices and payment status are verified by the server.</p>{checkoutError&&<small className="inline-notice">{checkoutError}</small>}</div>}
     </aside></div>}
     {notice&&drawer===''&&<div className="toast"><span>✓</span>{notice}</div>}
     <button className="admin-shortcut" title="Open admin workspace" onClick={()=>setDrawer('admin')}><LayoutDashboard size={17}/><span>Admin</span></button>
