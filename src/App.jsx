@@ -85,7 +85,7 @@ function ProductCard({ product, wished, onWish, onAdd }) {
     <div className="product-info">
       <p className="product-category">{product.category}</p>
       <h3>{product.name}</h3>
-      <div className="rating"><Star size={13} fill="currentColor" /><b>{product.rating}</b><span>({product.reviews})</span></div>
+      {product.reviews > 0 && <div className="rating"><Star size={13} fill="currentColor" /><b>{product.rating.toFixed(1)}</b><span>({product.reviews})</span></div>}
       <div className="price-line"><strong>{money(product.price)}</strong>{product.oldPrice > product.price && <del>{money(product.oldPrice)}</del>}</div>
       <button className="add-cart" onClick={() => onAdd(product)}><Plus size={16} /> Add to cart</button>
     </div>
@@ -458,6 +458,7 @@ function App() {
     <main className="admin-main">
       <header className="admin-topbar"><div><span className="eyebrow">WORKSPACE / {adminTab.toUpperCase()}</span><h1>{adminTab}</h1></div><div className="admin-profile"><span className="avatar">{(user.name || 'A').slice(0,1).toUpperCase()}</span><div><b>{user.name}</b><small>Administrator</small></div><ChevronDown size={16}/></div></header>
       {adminBusy && <p className="inline-notice">Loading live store data…</p>}
+      {notice && <p className="inline-notice" role="status">{notice}</p>}
       {adminTab==='Overview' ? <>
         <div className="admin-welcome"><div><p>YOUR STORE AT A GLANCE</p><h2>Good day, {user.name} 👋</h2><span>Here’s what’s happening with Mwamba Store.</span></div><button className="dark-btn" onClick={()=>setAdminTab('Products')}><Plus size={17}/> Manage products</button></div>
         <div className="stats-grid">{[['Total revenue',money(adminSummary?.revenue || 0),'Paid orders this month','This month'],['Orders',String(adminSummary?.orders ?? 0),'All orders','In the store'],['Products',String(adminSummary?.products ?? 0),String(adminSummary?.low_stock ?? 0)+' low stock','In your catalogue'],['Customers',String(adminSummary?.customers ?? 0),'Active accounts','Registered']].map(([label,value,trend,sub])=><div className="stat-card" key={label}><span>{label}</span><h3>{value}</h3><div><b>{trend}</b><small>{sub}</small></div></div>)}</div>
