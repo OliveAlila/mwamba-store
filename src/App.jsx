@@ -76,6 +76,7 @@ function App() {
   const [checkoutError, setCheckoutError] = useState('');
   const [adminSummary, setAdminSummary] = useState(null);
   const [adminLoadError, setAdminLoadError] = useState('');
+  const [paymentReturn, setPaymentReturn] = useState({ loading: false, success: false, message: '' });
 
   useEffect(() => {
     let cancelled = false;
@@ -112,6 +113,23 @@ function App() {
     return () => { cancelled = true; };
   }, [drawer, user]);
 
+  useEffect(() => {
+    if (window.location.pathname !== '/payment/return') return;
+    const reference = new URLSearchParams(window.location.search).get('reference');
+    if (!reference) {
+      setPaymentReturn({ loading: false, success: false, message: 'No payment reference was provided. Check your order or contact store support.' });
+      return;
+    }
+    let cancelled = false;
+    setPaymentReturn({ loading: true, success: false, message: 'Confirming your payment securely…' });
+    apiRequest(`/payments/verify/${encodeURIComponent(reference)}`).then(() => {
+      if (!cancelled) setPaymentReturn({ loading: false, success: true, message: 'Payment confirmed. Your order is being processed.' });
+    }).catch(error => {
+      if (!cancelled) setPaymentReturn({ loading: false, success: false, message: error.message || 'We could not confirm this payment. Do not pay again immediately; contact support with your payment reference.' });
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const visibleProducts = useMemo(() => {
     let result = products.filter(p => (activeCategory === 'All products' || p.category === activeCategory) && (p.name.toLowerCase().includes(query.toLowerCase()) || p.category.toLowerCase().includes(query.toLowerCase())));
     if (sort === 'price-low') result = [...result].sort((a,b) => a.price-b.price);
@@ -130,6 +148,8 @@ function App() {
   const toggleWish = id => setWishlist(old => old.includes(id) ? old.filter(x => x !== id) : [...old, id]);
   const goCategory = name => { setActiveCategory(name); setShowAll(true); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); };
   const startCheckout = () => { setDrawer('checkout'); };
+
+  if (window.location.pathname === '/payment/return') return <main className="app-shell"><section className="empty-state"><div className="account-icon">{paymentReturn.loading ? '…' : paymentReturn.success ? '✓' : '!'}</div><h1>{paymentReturn.loading ? 'Checking your payment' : paymentReturn.success ? 'Thank you for your order' : 'Payment confirmation pending'}</h1><p>{paymentReturn.message || 'Please wait while we verify the payment with the server.'}</p><button className="dark-btn" onClick={() => window.location.assign('/')}>Return to Mwamba Store</button></section></main>;
 
   if (drawer === 'admin' && user?.role !== 'admin') return <div className="drawer-backdrop"><section className="drawer"><div className="drawer-header"><div><span className="eyebrow">MWAMBA STORE</span><h2>Administrator sign-in required</h2></div><button className="icon-btn" onClick={() => setDrawer('')}><X size={22}/></button></div><p>The admin workspace is restricted to authenticated administrator accounts.</p><button className="dark-btn full-btn" onClick={() => { setDrawer('account'); setAuthMode('login'); }}>Sign in to continue</button></section></div>;
 
