@@ -54,6 +54,8 @@ The script creates a bcrypt-hashed administrator and refuses to silently promote
 - `POST /api/auth/register` — customer account creation only
 - `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
 - `GET /api/products?search=&category=`
+- `GET /api/categories` — active storefront categories
+- `GET /api/categories/admin/all`, `POST /api/categories`, `PATCH /api/categories/:id`, `DELETE /api/categories/:id` — admin-only category management (delete deactivates a category)
 - `GET /api/products/admin/all`, `POST /api/products`, `PATCH /api/products/:id` — admin only
 - `GET /api/admin/summary` — admin only
 - `POST /api/payments/initialize`, `GET /api/payments/verify/:reference` — signed-in users only

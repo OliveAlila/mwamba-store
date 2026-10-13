@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './auth.js';
 import productRoutes from './products.js';
+import categoryRoutes from './categories.js';
 import paymentRoutes from './payments.js';
 import { pingDatabase } from './db.js';
 import { requireAdmin, requireAuth, requireSameOrigin } from './security.js';
@@ -56,6 +57,7 @@ app.get('/api/config/public', (_req, res) => {
 
 app.use('/api/auth', requireSameOrigin, authLimiter, authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/payments', requireSameOrigin, paymentRoutes);
 
 app.get('/api/admin/summary', requireAuth, requireAdmin, async (_req, res, next) => {
