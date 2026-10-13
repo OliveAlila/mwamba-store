@@ -44,8 +44,8 @@ The script creates a bcrypt-hashed administrator and refuses to silently promote
 - MySQL schema for users, categories, products, inventory movements, orders, order items, promotions and payment audit events
 - Customer registration and login with bcrypt password hashing, HTTP-only session cookie, JWT expiry and logout/current-user endpoints
 - Role middleware protecting admin-only APIs
-- Public product catalogue and protected admin product list/create/update endpoints
-- Admin summary API for revenue, orders, products, customers and low stock
+- Public live product catalogue and category endpoints, plus protected admin product/category management
+- Admin summary, order fulfillment, customer metrics, promotion management and read-only configuration status APIs
 - Server-side Paystack transaction initialization and verification, with amount/currency/reference checks and transactional stock decrement
 - Rate limits for API and authentication routes, security headers, same-origin checks for state-changing authentication/payment requests
 
@@ -64,11 +64,11 @@ The script creates a bcrypt-hashed administrator and refuses to silently promote
 
 Use Paystack test credentials during development. Configure `PAYSTACK_SECRET_KEY` only in the server environment and set `PAYSTACK_CALLBACK_URL` to a public HTTPS return URL. The server calculates prices from database product records; it does not trust client-submitted prices. The verify endpoint checks the provider's reference, KES currency, exact amount and success status before marking an order paid and decrementing stock within a transaction.
 
-**Do not launch payments yet:** the checkout screen and return/callback page still need to be wired to these API endpoints and exercised with Paystack test transactions. Production launch also requires a verified webhook handler, HTTPS, tested database backups, monitoring, and a review of delivery, refunds and order lifecycle policies. Configure the callback URL to a real page on your deployed domain.
+**Payments still require end-to-end validation before launch.** The storefront checkout calls the initialization endpoint and handles the Paystack return reference after the customer signs in; this code path must still be exercised using Paystack test credentials. Production launch also requires a verified webhook handler, HTTPS, tested database backups, monitoring, and a review of delivery, refunds and order lifecycle policies. Set `PAYSTACK_CALLBACK_URL` to the deployed storefront URL (for example `https://mwamba.store/`) and confirm that the return reference is preserved by your hosting setup.
 
 ## Current frontend status
 
-The responsive storefront, cart, wishlist and admin workspace screens are currently a prototype using in-memory demonstration catalogue and sample dashboard metrics. Backend APIs and schema are committed, but the frontend is not yet fully connected to the live APIs. Treat admin metrics shown in the prototype as examples, not real business data.
+The storefront loads products and categories from the live API, supports customer registration/login, checkout initialization, Paystack return verification, and uses live API data in the admin overview, product/category management, order fulfillment, customer list, promotions and read-only configuration screens. Cart and wishlist contents remain in browser memory and are lost on refresh. Order history, delivery fees, customer refunds, promotion application at checkout, and automated Paystack webhooks are not implemented; do not advertise those as available features until they are added and tested.
 
 ## Repository
 
