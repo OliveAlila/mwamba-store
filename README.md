@@ -24,19 +24,21 @@ Vite proxies `/api` requests to Express on `localhost:3000`. The `/api/health` e
 
 1. In hPanel, create a MySQL database and a dedicated database user with a strong password.
 2. Grant that user privileges only on the Mwamba Store database.
-3. Open phpMyAdmin from hPanel, select the new database, and import `database/schema.sql`.
-4. In the Node.js application environment settings, add `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, and `NODE_ENV=production`.
-5. Never commit the real environment values or put database credentials in browser code.
+3. Open phpMyAdmin from hPanel, select the new database, and import `database/schema.sql`. This seeds categories and eight sample fashion products.
+4. If the schema is already installed but no products appear, import only `database/demo-products.sql`; it safely adds the eight demo products without deleting existing products.
+5. In the Node.js application environment settings, add `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, and `NODE_ENV=production`.
+6. Never commit the real environment values or put database credentials in browser code.
 
 ## Create the first administrator
 
-Set these variables temporarily in the private environment where the command will run: `ADMIN_NAME`, `ADMIN_EMAIL`, and a unique `ADMIN_PASSWORD` of at least 14 characters. Then run:
+Use Hostinger SSH/terminal access, change to the application root (the folder containing `package.json`), and run:
 
 ```bash
+npm install
 npm run create-admin
 ```
 
-The script creates a bcrypt-hashed administrator and refuses to silently promote an existing customer. Remove `ADMIN_PASSWORD` from the environment after use. Do not expose a public registration option for admin roles.
+The script prompts for the administrator name and email, then requests a password without displaying it. Use a separate email not already registered as a customer and a unique password of 14–72 characters. It creates a bcrypt-hashed administrator and refuses to silently promote an existing customer. The command-line process must be able to access the same private database variables as the app. If Hostinger's Node environment variables are not inherited by SSH, configure them privately for the command; never paste them into chat, commit them, or print them in logs. If your plan has no terminal access, ask Hostinger support how to run the one-time script. Do not expose a public admin-registration option.
 
 ## Backend implemented in this starter
 
