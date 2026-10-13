@@ -114,6 +114,11 @@ function App() {
   const [adminSummary, setAdminSummary] = useState(null);
   const [adminProducts, setAdminProducts] = useState([]);
   const [adminCategories, setAdminCategories] = useState([]);
+  const [adminOrders, setAdminOrders] = useState([]);
+  const [adminCustomers, setAdminCustomers] = useState([]);
+  const [adminPromotions, setAdminPromotions] = useState([]);
+  const [promotionForm, setPromotionForm] = useState({ name: '', code: '', discount_type: 'percentage', discount_value: '10', starts_at: '', ends_at: '' });
+  const [publicConfig, setPublicConfig] = useState(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
   const [productForm, setProductForm] = useState({ name: '', description: '', category_id: '', price: '', compare_at_price: '', stock_quantity: '0', sku: '', image_url: '' });
@@ -171,6 +176,18 @@ function App() {
       } else if (tab === 'Categories') {
         const cats = await api('/api/categories/admin/all');
         setAdminCategories(cats.categories || []);
+      } else if (tab === 'Orders') {
+        const result = await api('/api/admin/orders');
+        setAdminOrders(result.orders || []);
+      } else if (tab === 'Customers') {
+        const result = await api('/api/admin/customers');
+        setAdminCustomers(result.customers || []);
+      } else if (tab === 'Promotions') {
+        const result = await api('/api/admin/promotions');
+        setAdminPromotions(result.promotions || []);
+      } else if (tab === 'Settings') {
+        const result = await api('/api/config/public');
+        setPublicConfig(result);
       }
     } catch (error) {
       setNotice(formatApiError(error));
@@ -377,6 +394,59 @@ function App() {
     } catch (error) {
       setNotice(formatApiError(error));
     } finally { setAdminBusy(false); }
+  };
+
+  const updateOrderStatus = async (id, status) => {
+    setAdminBusy(true);
+    try {
+      await api('/api/admin/orders/' + id, { method: 'PATCH', body: JSON.stringify({ status }) });
+      const result = await api('/api/admin/orders');
+      setAdminOrders(result.orders || []);
+      setNotice('Order status updated.');
+    } catch (error) {
+      setNotice(formatApiError(error));
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const createPromotion = async event => {
+    event.preventDefault();
+    setAdminBusy(true);
+    try {
+      const payload = {
+        ...promotionForm,
+        discount_value: Number(promotionForm.discount_value),
+        starts_at: promotionForm.starts_at || null,
+        ends_at: promotionForm.ends_at || null,
+      };
+      await api('/api/admin/promotions', { method: 'POST', body: JSON.stringify(payload) });
+      setPromotionForm({ name: '', code: '', discount_type: 'percentage', discount_value: '10', starts_at: '', ends_at: '' });
+      const result = await api('/api/admin/promotions');
+      setAdminPromotions(result.promotions || []);
+      setNotice('Promotion created as inactive. Activate it when ready.');
+    } catch (error) {
+      setNotice(formatApiError(error));
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const togglePromotion = async promotion => {
+    setAdminBusy(true);
+    try {
+      await api('/api/admin/promotions/' + promotion.id, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: !Boolean(promotion.is_active) }),
+      });
+      const result = await api('/api/admin/promotions');
+      setAdminPromotions(result.promotions || []);
+      setNotice(promotion.is_active ? 'Promotion deactivated.' : 'Promotion activated.');
+    } catch (error) {
+      setNotice(formatApiError(error));
+    } finally {
+      setAdminBusy(false);
+    }
   };
 
   if (drawer === 'admin' && user?.role === 'admin') return <div className="admin-shell">
