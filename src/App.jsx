@@ -48,6 +48,22 @@ async function api(path, options = {}) {
   return data;
 }
 
+function fallbackProductImage(product) {
+  const name = String(product.name || '').toLowerCase();
+  const category = String(product.category || '').toLowerCase();
+  const photos = [
+    [/sneaker|shoe|trainer|footwear/, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=82'],
+    [/dress|jacket|tee|shirt|fashion|denim|clothing/, 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=82'],
+    [/bag|backpack|handbag/, 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=700&q=82'],
+    [/sunglass|watch|accessor/, 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=82'],
+    [/headphone|speaker|electronic|phone|tablet|laptop/, 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=82'],
+    [/home|lamp|cookware|kitchen|living/, 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=700&q=82'],
+    [/beauty|skin|cosmetic/, 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=700&q=82'],
+  ];
+  const match = photos.find(([pattern]) => pattern.test(name) || pattern.test(category));
+  return match?.[1] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=700&q=82';
+}
+
 function normalizeProduct(product) {
   const price = Number(product.price || 0);
   const oldPrice = Number(product.compare_at_price || price);
@@ -59,7 +75,7 @@ function normalizeProduct(product) {
     rating: Number(product.rating || 0),
     reviews: Number(product.reviews || 0),
     category: product.category || 'Uncategorised',
-    image: product.image_url || '',
+    image: product.image_url || fallbackProductImage(product),
     badge: oldPrice > price ? '−' + Math.round((1 - price / oldPrice) * 100) + '%' : '',
     art: '🛍️',
     tint: 'lavender',
