@@ -110,6 +110,7 @@ function App() {
   const [authBusy, setAuthBusy] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [previewMode, setPreviewMode] = useState(false);
   const [productError, setProductError] = useState('');
   const [adminSummary, setAdminSummary] = useState(null);
   const [adminProducts, setAdminProducts] = useState([]);
@@ -138,8 +139,11 @@ function App() {
       setProducts((productResponse.products || []).map(normalizeProduct));
       setCategoryData(categoryResponse.categories || []);
     } catch (error) {
-      setProductError(formatApiError(error));
-      setProducts([]);
+      // Keep the storefront view available while the API is offline.
+      setPreviewMode(true);
+      setCategoryData([]);
+      setProductError('');
+      setProducts(initialProducts);
     } finally {
       setLoadingProducts(false);
     }
@@ -534,6 +538,7 @@ function App() {
     </header>
     <nav className={mobileMenu?'category-nav mobile-open':'category-nav'}><button className="all-categories" onClick={()=>setMobileMenu(!mobileMenu)}><Menu size={17}/> All categories <ChevronDown size={14}/></button>{(categoryData.length ? [...categories.filter(c => categoryData.some(live => live.name === c.name)), ...categoryData.filter(live => !categories.some(c => c.name === live.name)).map(live => ({ name: live.name }))].map(c => c.name).slice(0,6) : ['Phones & Tablets','Fashion','Home & Living','Electronics','Beauty','Sports & Outdoors']).map(c=><button key={c} className={activeCategory===c?'nav-category selected':''} onClick={()=>{goCategory(c);setMobileMenu(false)}}>{c}</button>)}<button className="nav-deals" onClick={()=>{setActiveCategory('All products');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}><Zap size={15} fill="currentColor"/> Deals</button></nav>
 
+    {previewMode && <div role="status" style={{ background: '#fff4e5', color: '#714400', padding: '10px 16px', textAlign: 'center', fontSize: '14px' }}>Preview mode: the live backend is temporarily unavailable. Sample products are shown; account and checkout services require the backend.</div>}
     <main>
       <section className="hero-layout">
         <aside className="category-rail"><div className="rail-title">SHOP BY CATEGORY</div>{(categoryData.length ? [...categories.filter(c => categoryData.some(live => live.name === c.name)), ...categoryData.filter(live => !categories.some(c => c.name === live.name)).map(live => ({ name: live.name, icon: Tag }))] : categories).slice(0,8).map(({name,icon:Icon})=><button key={name} onClick={()=>goCategory(name)}><Icon size={17}/><span>{name}</span><ChevronRight size={14}/></button>)}<button className="view-cats" onClick={()=>goCategory('All products')}>View all categories <ArrowRight size={15}/></button></aside>
