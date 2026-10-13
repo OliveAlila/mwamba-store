@@ -39,10 +39,10 @@ function Brand() {
 }
 
 function ProductCard({ product, wished, onWish, onAdd }) {
-  const discount = Math.round((1 - product.price / product.oldPrice) * 100);
+  const discount = product.oldPrice > product.price ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
   return <article className="product-card">
     <div className="product-art-wrap">
-      <span className="sale-badge">{product.badge || `−${discount}%`}</span>
+      <span className="sale-badge">{product.badge || (discount ? `−${discount}%` : 'NEW')}</span>
       <button className={`wish-btn ${wished ? 'is-wished' : ''}`} aria-label="Add to wishlist" onClick={() => onWish(product.id)}><Heart size={18} fill={wished ? 'currentColor' : 'none'} /></button>
       <div className={`product-art ${product.tint}`}><img src={product.image} alt={product.name} loading="lazy" onError={e => { e.currentTarget.hidden = true; e.currentTarget.nextElementSibling.hidden = false; }} /><span className="product-art-fallback" hidden>{product.art}</span></div>
     </div>
@@ -50,7 +50,7 @@ function ProductCard({ product, wished, onWish, onAdd }) {
       <p className="product-category">{product.category}</p>
       <h3>{product.name}</h3>
       <div className="rating"><Star size={13} fill="currentColor" /><b>{product.rating}</b><span>({product.reviews})</span></div>
-      <div className="price-line"><strong>{money(product.price)}</strong><del>{money(product.oldPrice)}</del></div>
+      <div className="price-line"><strong>{money(product.price)}</strong>{product.oldPrice > product.price && <del>{money(product.oldPrice)}</del>}</div>
       <button className="add-cart" onClick={() => onAdd(product)}><Plus size={16} /> Add to cart</button>
     </div>
   </article>;
