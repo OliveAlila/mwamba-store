@@ -84,7 +84,9 @@ app.get('/api/health', async (_req, res) => {
   try {
     await pingDatabase();
     return res.json({ status: 'ok', service: 'mwamba-store-api', database: 'connected' });
-  } catch {
+  } catch (error) {
+    // Log only a diagnostic code server-side; never expose connection strings or credentials.
+    console.error('[health] database probe failed:', error?.code || error?.name || 'UNKNOWN_DATABASE_ERROR');
     return res.status(503).json({ status: 'degraded', service: 'mwamba-store-api', database: 'unavailable' });
   }
 });
