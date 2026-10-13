@@ -96,7 +96,7 @@ function ProductCard({ product, wished, onWish, onAdd }) {
     <div className="product-art-wrap">
       <span className="sale-badge">{product.badge || (discount ? `−${discount}%` : 'NEW')}</span>
       <button className={`wish-btn ${wished ? 'is-wished' : ''}`} aria-label="Add to wishlist" onClick={() => onWish(product.id)}><Heart size={18} fill={wished ? 'currentColor' : 'none'} /></button>
-      <div className={`product-art ${product.tint}`}><img src={product.image} alt={product.name} loading="lazy" onError={e => { e.currentTarget.hidden = true; e.currentTarget.nextElementSibling.hidden = false; }} /><span className="product-art-fallback" hidden>{product.art}</span></div>
+      <div className={`product-art ${product.tint}`}><img src={product.image} alt={product.name} loading="lazy" onError={e => { const img = e.currentTarget; const fallback = fallbackProductImage(product); if (!img.dataset.fallbackTried && img.src !== fallback) { img.dataset.fallbackTried = 'true'; img.src = fallback; } else { img.hidden = true; img.nextElementSibling.hidden = false; } }} /><span className="product-art-fallback" hidden>{product.art}</span></div>
     </div>
     <div className="product-info">
       <p className="product-category">{product.category}</p>
