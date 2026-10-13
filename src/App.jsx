@@ -32,9 +32,10 @@ const initialProducts = [
 ];
 
 const money = value => 'KSh ' + Number(value || 0).toLocaleString('en-KE');
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     credentials: 'same-origin',
     ...options,
     headers: {
