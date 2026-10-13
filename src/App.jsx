@@ -108,6 +108,35 @@ function ProductCard({ product, wished, onWish, onAdd }) {
   </article>;
 }
 
+const heroSlides = [
+  {
+    kicker: 'THE MWAMBA EVERYDAY EDIT',
+    title: <>Good things.<br/><em>Great prices.</em></>,
+    description: 'Discover the little upgrades that make everyday life feel extraordinary.',
+    image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=85',
+    alt: 'Modern retail store with curated clothing and accessories',
+    cta: 'Explore the store',
+  },
+  {
+    kicker: 'STYLE FOR EVERY DAY',
+    title: <>Find your look.<br/><em>Love your price.</em></>,
+    description: 'Everyday fashion and accessories picked for your next favourite outfit.',
+    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=85',
+    alt: 'Fashion shoppers browsing clothing together',
+    cta: 'Shop fashion',
+    category: 'Fashion',
+  },
+  {
+    kicker: 'SMART FINDS, BETTER LIVING',
+    title: <>Little upgrades.<br/><em>Big difference.</em></>,
+    description: 'Discover useful tech, home essentials and gifts for everyday life.',
+    image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=1200&q=85',
+    alt: 'Modern consumer electronics on display',
+    cta: 'Browse electronics',
+    category: 'Electronics',
+  },
+];
+
 function App() {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All products');
@@ -115,6 +144,7 @@ function App() {
   const [wishlist, setWishlist] = useState([]);
   const [drawer, setDrawer] = useState('');
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [heroSlide, setHeroSlide] = useState(0);
   const [sort, setSort] = useState('featured');
   const [adminTab, setAdminTab] = useState('Overview');
   const [showAll, setShowAll] = useState(false);
@@ -217,6 +247,11 @@ function App() {
       setAdminBusy(false);
     }
   };
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setHeroSlide(current => (current + 1) % heroSlides.length), 5500);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -580,19 +615,31 @@ function App() {
         <button className="header-action cart-action" onClick={()=>setDrawer('cart')}><span className="action-icon"><ShoppingCart size={22}/><i>{cartCount}</i></span><span><small>Your bag</small><b>Cart</b></span></button>
       </div>
     </header>
-    <nav className="category-nav">
-      <button className={mobileMenu?'all-categories menu-open':'all-categories'} aria-expanded={mobileMenu} aria-controls="category-dropdown" onClick={()=>setMobileMenu(value=>!value)}><Menu size={20}/><span>All categories</span><ChevronDown size={14}/></button>
-      <button className="nav-deals" onClick={()=>{setActiveCategory('All products');setShowAll(true);setMobileMenu(false);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}><Zap size={15} fill="currentColor"/> Deals</button>
-      {mobileMenu&&<div id="category-dropdown" className="category-dropdown">{(categoryData.length ? [...categories.filter(c => categoryData.some(live => live.name === c.name)), ...categoryData.filter(live => !categories.some(c => c.name === live.name)).map(live => ({ name: live.name, icon: Tag }))] : categories).map(({name,icon:Icon=Tag})=><button key={name} className={activeCategory===name?'dropdown-category selected':''} onClick={()=>{goCategory(name);setMobileMenu(false)}}><Icon size={17}/><span>{name}</span><ChevronRight size={15}/></button>)}</div>}
-    </nav>
+    {mobileMenu && <div id="category-dropdown" className="header-category-dropdown">
+      {(categoryData.length ? [...categories.filter(c => categoryData.some(live => live.name === c.name)), ...categoryData.filter(live => !categories.some(c => c.name === live.name)).map(live => ({ name: live.name, icon: Tag }))] : categories).map(({name,icon:Icon=Tag})=><button key={name} className={activeCategory===name?'dropdown-category selected':''} onClick={()=>{goCategory(name);setMobileMenu(false)}}><Icon size={17}/><span>{name}</span><ChevronRight size={15}/></button>)}
+      <button className="dropdown-category" onClick={()=>{setActiveCategory('All products');setShowAll(true);setMobileMenu(false);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}><Zap size={17}/><span>Deals & all products</span><ChevronRight size={15}/></button>
+    </div>}
 
     {previewMode && <div role="status" style={{ background: '#fff4e5', color: '#714400', padding: '10px 16px', textAlign: 'center', fontSize: '14px' }}>Preview mode: the live backend is temporarily unavailable. Sample products are shown; account and checkout services require the backend.</div>}
     <main>
       <section className="hero-layout">
         
         <div className="hero-main">
-          <div className="hero-banner"><div className="hero-copy"><span className="hero-kicker"><Sparkles size={14}/> THE MWAMBA EVERYDAY EDIT</span><h1>Good things.<br/><em>Great prices.</em></h1><p>Discover the little upgrades that make<br className="desktop-break"/> everyday life feel extraordinary.</p><button onClick={()=>{setActiveCategory('All products');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>Explore the store <ArrowRight size={17}/></button><div className="hero-dots"><span className="active"/><span/><span/></div></div><div className="hero-art"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><div className="hero-product hero-phone">📱</div><div className="hero-product hero-headphones">🎧</div><div className="hero-product hero-bag">👜</div><div className="hero-product hero-sneaker">👟</div><div className="hero-sticker"><span>FRESH</span><b>FINDS</b><small>EVERY DAY</small></div></div><div className="hero-number">01 / 03</div></div>
-          <div className="benefit-strip"><div><span className="benefit-icon"><Truck size={20}/></span><div><b>Convenient delivery</b><small>Across Kenya</small></div></div><div><span className="benefit-icon"><ShieldCheck size={20}/></span><div><b>Shop with confidence</b><small>Secure checkout</small></div></div><div><span className="benefit-icon"><Headphones size={20}/></span><div><b>Here to help</b><small>Customer support</small></div></div></div>
+          <div className="hero-banner" aria-roledescription="carousel" aria-label="Mwamba store highlights">
+            <div className="hero-copy" key={heroSlide}>
+              <span className="hero-kicker"><Sparkles size={14}/> {heroSlides[heroSlide].kicker}</span>
+              <h1>{heroSlides[heroSlide].title}</h1>
+              <p>{heroSlides[heroSlide].description}</p>
+              <button onClick={()=>{if(heroSlides[heroSlide].category)setActiveCategory(heroSlides[heroSlide].category);else setActiveCategory('All products');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>{heroSlides[heroSlide].cta} <ArrowRight size={17}/></button>
+              <div className="hero-dots" role="group" aria-label="Choose featured slide">{heroSlides.map((slide,index)=><button key={slide.kicker} className={index===heroSlide?'active':''} aria-label={'Show slide '+(index+1)} aria-pressed={index===heroSlide} onClick={()=>setHeroSlide(index)}/>)}</div>
+            </div>
+            <div className="hero-photo" key={heroSlides[heroSlide].image}>
+              <img src={heroSlides[heroSlide].image} alt={heroSlides[heroSlide].alt} loading="eager" />
+              <div className="hero-photo-shade"/>
+              <span className="hero-photo-tag">FRESH FINDS · EVERY DAY</span>
+            </div>
+            <div className="hero-number">0{heroSlide+1} / 0{heroSlides.length}</div>
+          </div><div className="benefit-strip"><div><span className="benefit-icon"><Truck size={20}/></span><div><b>Convenient delivery</b><small>Across Kenya</small></div></div><div><span className="benefit-icon"><ShieldCheck size={20}/></span><div><b>Shop with confidence</b><small>Secure checkout</small></div></div><div><span className="benefit-icon"><Headphones size={20}/></span><div><b>Here to help</b><small>Customer support</small></div></div></div>
         </div>
       </section>
 
