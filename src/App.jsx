@@ -414,7 +414,38 @@ function App() {
           <button className="dark-btn" disabled={adminBusy}><Plus size={16}/> Create category</button>
         </form></section>
         <section className="admin-panel"><div className="panel-heading"><div><h3>Categories</h3><p>{adminCategories.length} configured</p></div></div><div className="admin-table-wrap"><table><thead><tr><th>NAME</th><th>SLUG</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>{adminCategories.map(c=><tr key={c.id}><td>{c.name}</td><td>{c.slug}</td><td>{c.is_active?'Active':'Inactive'}</td><td>{c.is_active&&<button className="text-link" onClick={async()=>{try{await api('/api/categories/'+c.id,{method:'DELETE'});await loadAdminData('Categories');await loadStorefront();setNotice('Category deactivated.');}catch(error){setNotice(formatApiError(error));}}}>Deactivate</button>}</td></tr>)}</tbody></table></div></section>
-      </div> : <section className="admin-panel admin-placeholder"><div className="placeholder-icon"><Boxes size={30}/></div><h2>{adminTab} management</h2><p>The live {adminTab.toLowerCase()} management module is not implemented yet. It is intentionally not displaying sample records.</p></section>}
+      </div> : adminTab==='Orders' ? <section className="admin-panel">
+        <div className="panel-heading"><div><h3>Customer orders</h3><p>{adminOrders.length} recent orders · paid orders can move through fulfillment</p></div></div>
+        <div className="admin-table-wrap"><table><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>PAYMENT</th><th>TOTAL</th><th>FULFILLMENT</th></tr></thead><tbody>
+          {adminOrders.map(o=><tr key={o.id}><td><b>{o.order_number}</b><small>{new Date(o.created_at).toLocaleDateString()}</small></td><td>{o.customer_name}<small>{o.customer_email}</small></td><td>{o.payment_status}</td><td>{money(o.total)}</td><td><select aria-label={'Fulfillment status for '+o.order_number} value={o.status} disabled={adminBusy} onChange={e=>updateOrderStatus(o.id,e.target.value)}><option value={o.status}>{o.status.replaceAll('_',' ')}</option>{o.payment_status==='paid'&&['processing','packed','shipped','delivered'].filter(s=>s!==o.status).map(s=><option key={s} value={s}>{s}</option>)}{o.status!=='review_required'&&<option value="review_required">review required</option>}</select></td></tr>)}
+        </tbody></table>{!adminOrders.length&&<p>No orders yet.</p>}</div>
+      </section> : adminTab==='Customers' ? <section className="admin-panel">
+        <div className="panel-heading"><div><h3>Customers</h3><p>{adminCustomers.length} customer accounts</p></div></div>
+        <div className="admin-table-wrap"><table><thead><tr><th>CUSTOMER</th><th>STATUS</th><th>ORDERS</th><th>PAID TOTAL</th><th>JOINED</th></tr></thead><tbody>
+          {adminCustomers.map(customer=><tr key={customer.id}><td><b>{customer.name}</b><small>{customer.email}</small></td><td>{customer.status}</td><td>{customer.order_count}</td><td>{money(customer.paid_total)}</td><td>{new Date(customer.created_at).toLocaleDateString()}</td></tr>)}
+        </tbody></table>{!adminCustomers.length&&<p>No customer accounts yet.</p>}</div>
+      </section> : adminTab==='Promotions' ? <div className="admin-panels">
+        <section className="admin-panel"><div className="panel-heading"><div><h3>Create a promotion</h3><p>New promotions are created inactive and must be activated intentionally.</p></div></div>
+          <form className="admin-form" onSubmit={createPromotion}>
+            <label>Promotion name<input required minLength="2" maxLength="160" value={promotionForm.name} onChange={e=>setPromotionForm({...promotionForm,name:e.target.value})}/></label>
+            <label>Code (optional)<input maxLength="60" placeholder="WELCOME10" value={promotionForm.code} onChange={e=>setPromotionForm({...promotionForm,code:e.target.value.toUpperCase()})}/></label>
+            <label>Discount type<select value={promotionForm.discount_type} onChange={e=>setPromotionForm({...promotionForm,discount_type:e.target.value})}><option value="percentage">Percentage (%)</option><option value="fixed">Fixed amount (KES)</option></select></label>
+            <label>Discount value<input required type="number" min="0.01" max={promotionForm.discount_type==='percentage'?'100':undefined} step="0.01" value={promotionForm.discount_value} onChange={e=>setPromotionForm({...promotionForm,discount_value:e.target.value})}/></label>
+            <label>Starts at (optional)<input type="datetime-local" value={promotionForm.starts_at} onChange={e=>setPromotionForm({...promotionForm,starts_at:e.target.value})}/></label>
+            <label>Ends at (optional)<input type="datetime-local" value={promotionForm.ends_at} onChange={e=>setPromotionForm({...promotionForm,ends_at:e.target.value})}/></label>
+            <button className="dark-btn" disabled={adminBusy}><Plus size={16}/>{adminBusy?'Saving…':'Create promotion'}</button>
+          </form>
+        </section>
+        <section className="admin-panel"><div className="panel-heading"><div><h3>Promotions</h3><p>{adminPromotions.length} configured</p></div></div>
+          <div className="admin-table-wrap"><table><thead><tr><th>NAME / CODE</th><th>DISCOUNT</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>
+            {adminPromotions.map(p=><tr key={p.id}><td><b>{p.name}</b><small>{p.code || 'No code'}</small></td><td>{p.discount_type==='percentage'?p.discount_value+'%':money(p.discount_value)}</td><td>{p.is_active?'Active':'Inactive'}</td><td><button className="text-link" disabled={adminBusy} onClick={()=>togglePromotion(p)}>{p.is_active?'Deactivate':'Activate'}</button></td></tr>)}
+          </tbody></table>{!adminPromotions.length&&<p>No promotions created yet.</p>}</div>
+        </section>
+      </div> : adminTab==='Settings' ? <section className="admin-panel">
+        <div className="panel-heading"><div><h3>Store configuration</h3><p>Read-only status from the server. Secret values are never sent to the browser.</p></div></div>
+        {publicConfig ? <div className="stats-grid"><div className="stat-card"><span>Store currency</span><h3>{publicConfig.currency || 'KES'}</h3><small>Displayed prices use this currency.</small></div><div className="stat-card"><span>Paystack configuration</span><h3>{publicConfig.paymentsConfigured?'Configured':'Not configured'}</h3><small>{publicConfig.paymentsConfigured?'Server has a secret key and HTTPS callback URL.':'Set PAYSTACK_SECRET_KEY and PAYSTACK_CALLBACK_URL in Hostinger.'}</small></div></div> : <p>Loading configuration…</p>}
+        <p className="inline-notice">Database credentials and payment secret keys are intentionally not displayed here.</p>
+      </section>}
     </main>
   </div>;
 
