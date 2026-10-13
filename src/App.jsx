@@ -44,7 +44,7 @@ function ProductCard({ product, wished, onWish, onAdd }) {
     <div className="product-art-wrap">
       {(product.badge || discount > 0) && <span className="sale-badge">{product.badge || `−${discount}%`}</span>}
       <button className={`wish-btn ${wished ? 'is-wished' : ''}`} aria-label="Add to wishlist" onClick={() => onWish(product.id)}><Heart size={18} fill={wished ? 'currentColor' : 'none'} /></button>
-      <div className={`product-art ${product.tint}`}><img src={product.image} alt={product.name} loading="lazy" onError={e => { e.currentTarget.hidden = true; e.currentTarget.nextElementSibling.hidden = false; }} /><span className="product-art-fallback" hidden>{product.art}</span></div>
+      <div className={`product-art ${product.tint}`}>{product.image ? <img src={product.image} alt={product.name} loading="lazy" onError={e => { e.currentTarget.hidden = true; e.currentTarget.nextElementSibling.hidden = false; }} /> : null}<span className="product-art-fallback" hidden={Boolean(product.image)}>{product.art}</span></div>
     </div>
     <div className="product-info">
       <p className="product-category">{product.category}</p>
@@ -109,7 +109,7 @@ function App() {
     if (sort === 'price-high') result = [...result].sort((a,b) => b.price-a.price);
     if (sort === 'rating') result = [...result].sort((a,b) => b.rating-a.rating);
     return showAll ? result : result.slice(0, 8);
-  }, [activeCategory, query, sort, showAll]);
+  }, [products, activeCategory, query, sort, showAll]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
