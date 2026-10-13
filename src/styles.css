@@ -66,3 +66,37 @@
  .category-nav.mobile-open{border-bottom:2px solid #d7b486}
  .product-art img{object-fit:contain}
 }
+
+
+/* Flat, deliberate colour blocks — no gradients. Category tiles are larger and more image-led. */
+.announcement{background:#28251f}
+.search-box>button{background:#c3955c}
+.hero-banner{background:#f0e2cd}
+.hero-copy h1 em{color:#a66f36}
+.deal-banner{background:#3b3024}
+.hero-sticker{background:#c3955c}
+.category-section{margin-top:34px}
+.category-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.category-tile{min-height:154px;padding:16px 10px 14px;gap:10px;border:1px solid #e5dccf;border-radius:8px;background:#fff;justify-content:center}
+.category-illustration{width:76px;height:76px;border-radius:8px;flex-shrink:0}
+.category-illustration svg{width:36px;height:36px;stroke-width:1.7}
+.category-tile b{font-size:13px;line-height:1.35;min-height:35px;display:flex;align-items:center;justify-content:center}
+.category-tile small{font-size:11px;color:#817d74}
+.category-tile:hover{transform:translateY(-2px);border-color:#c3955c;box-shadow:0 5px 15px #28251f0d}
+.category-illustration.lavender{background:#ece5f2;color:#766187}
+.category-illustration.peach{background:#f5e2d2;color:#a86d4c}
+.category-illustration.mint{background:#e1ebdc;color:#58744d}
+.category-illustration.blue{background:#e0e9f1;color:#4d6e89}
+.category-illustration.pink{background:#f5e0e5;color:#a55e71}
+.category-illustration.yellow{background:#f5e9c9;color:#8d7132}
+@media(max-width:900px){
+ .category-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+ .category-tile{min-height:142px}
+}
+@media(max-width:600px){
+ .category-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .category-tile{min-height:132px;padding:12px 8px}
+ .category-illustration{width:68px;height:68px}
+ .category-tile b{font-size:12px;min-height:30px}
+ .hero-banner{background:#f0e2cd}
+}
