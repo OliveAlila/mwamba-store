@@ -171,3 +171,6 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     return next(error);
   }
 });
+
+export default router;
+
