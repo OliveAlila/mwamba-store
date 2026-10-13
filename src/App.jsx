@@ -78,7 +78,7 @@ function ProductCard({ product, wished, onWish, onAdd }) {
   const discount = product.oldPrice > product.price ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
   return <article className="product-card">
     <div className="product-art-wrap">
-      <span className="sale-badge">{product.badge || `−${discount}%`}</span>
+      <span className="sale-badge">{product.badge || (discount ? `−${discount}%` : 'NEW')}</span>
       <button className={`wish-btn ${wished ? 'is-wished' : ''}`} aria-label="Add to wishlist" onClick={() => onWish(product.id)}><Heart size={18} fill={wished ? 'currentColor' : 'none'} /></button>
       <div className={`product-art ${product.tint}`}><img src={product.image} alt={product.name} loading="lazy" onError={e => { e.currentTarget.hidden = true; e.currentTarget.nextElementSibling.hidden = false; }} /><span className="product-art-fallback" hidden>{product.art}</span></div>
     </div>
