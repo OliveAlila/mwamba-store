@@ -270,3 +270,59 @@
   .category-nav { justify-content:flex-start; }
   .main-header { gap:18px; }
 }
+
+
+/* Header menu lives below the hamburger; it never overlays the search field. */
+.main-header { position:relative; z-index:30; }
+.main-header .mobile-menu { display:grid; flex:0 0 auto; width:42px; height:42px; place-items:center; border:1px solid var(--line); border-radius:8px; background:#fff; }
+.main-header .mobile-menu[aria-expanded="true"] { border-color:var(--gold); background:var(--cream); }
+.category-nav { display:none !important; }
+.header-category-dropdown { position:absolute; z-index:40; top:calc(var(--announcement-height, 34px) + 78px); left:max(24px,calc((100vw - 1280px)/2 + 24px)); width:min(330px,calc(100vw - 32px)); max-height:min(70vh,520px); overflow:auto; padding:8px; border:1px solid var(--line); border-radius:10px; background:#fff; box-shadow:0 18px 45px #28251f26; }
+.header-category-dropdown .dropdown-category { min-height:44px; }
+.hero-banner { height:clamp(320px,32vw,430px); background:#f0e2cd; isolation:isolate; }
+.hero-copy { width:51%; padding:clamp(30px,4vw,54px) 0 42px clamp(24px,4vw,52px); animation:heroCopyIn .45s ease both; }
+.hero-copy h1 { font-size:clamp(34px,4vw,56px); }
+.hero-copy p { font-size:clamp(13px,1.2vw,16px); max-width:370px; }
+.hero-copy>button { padding:14px 18px; font-size:13px; }
+.hero-dots { left:clamp(24px,4vw,52px); bottom:24px; gap:8px; }
+.hero-dots button { width:8px; height:8px; padding:0; border:0; border-radius:20px; background:#c3b6a3; transition:width .25s ease,background .25s ease; }
+.hero-dots button.active { width:28px; background:#8c6c4b; }
+.hero-photo { position:absolute; inset:0 0 0 45%; overflow:hidden; animation:heroPhotoIn .65s ease both; }
+.hero-photo img { display:block; width:100%; height:100%; object-fit:cover; object-position:center; }
+.hero-photo-shade { position:absolute; inset:0; background:linear-gradient(90deg,#f0e2cd 0%,rgba(240,226,205,.84) 4%,rgba(240,226,205,.12) 42%,rgba(40,37,31,.05) 100%); }
+.hero-photo-tag { position:absolute; right:22px; bottom:22px; background:#fffaf0e8; color:#785a39; padding:9px 12px; border-radius:4px; font-size:10px; font-weight:800; letter-spacing:1.2px; }
+.hero-number { z-index:3; color:#fffaf0; text-shadow:0 1px 5px #28251f80; }
+@keyframes heroPhotoIn { from { opacity:.55; transform:scale(1.035); } to { opacity:1; transform:scale(1); } }
+@keyframes heroCopyIn { from { opacity:.65; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-photo, .hero-copy { animation:none !important; }
+}
+@media (max-width:760px) {
+  .main-header { position:relative; height:auto; min-height:70px; flex-wrap:nowrap; padding:10px 15px; gap:10px; }
+  .main-header .mobile-menu { width:38px; height:38px; }
+  .main-header .brand-button { min-width:0; }
+  .main-header .brand-name { font-size:16px; }
+  .main-header .brand-mark { width:32px; height:32px; }
+  .main-header .header-actions { gap:10px; margin-left:auto; }
+  .main-header .search-box { position:relative; order:4; top:auto; left:auto; right:auto; flex:1 0 100%; width:100%; margin-top:8px; }
+  .main-header { flex-wrap:wrap; }
+  .header-category-dropdown { top:118px; left:12px; }
+  .hero-layout { margin-top:14px !important; }
+  .hero-banner { height:330px; min-height:0; }
+  .hero-copy { width:66%; padding:27px 0 40px 20px; }
+  .hero-copy h1 { font-size:clamp(28px,7vw,39px); letter-spacing:-1.5px; }
+  .hero-copy p { max-width:210px; font-size:12px; line-height:1.6; }
+  .hero-photo { left:38%; }
+  .hero-photo-shade { background:linear-gradient(90deg,#f0e2cd 0%,rgba(240,226,205,.8) 10%,rgba(240,226,205,.08) 78%); }
+  .hero-photo-tag { right:10px; bottom:12px; font-size:8px; padding:7px 8px; }
+  .hero-number { bottom:11px; right:10px; }
+}
+@media (max-width:430px) {
+  .main-header .brand-name { display:none; }
+  .main-header .search-box { order:5; }
+  .header-category-dropdown { top:115px; }
+  .hero-banner { height:310px; }
+  .hero-copy { width:72%; padding-left:16px; }
+  .hero-photo { left:35%; }
+  .hero-photo-shade { background:linear-gradient(90deg,#f0e2cd 0%,rgba(240,226,205,.88) 8%,rgba(240,226,205,.12) 95%); }
+}
