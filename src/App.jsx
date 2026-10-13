@@ -571,7 +571,7 @@ function App() {
   return <div className="app-shell">
     <div className="announcement"><span>Good finds. Better prices. Every day.</span><span className="announcement-right"><Truck size={14}/> Delivery across Kenya <i/> Need help? <button className="contact-link" onClick={()=>setNotice("Customer support contact details will be added before launch.")}>Contact us</button></span></div>
     <header className="main-header">
-      <button className="mobile-menu icon-btn" aria-label="Open menu" onClick={()=>setMobileMenu(!mobileMenu)}><Menu size={22}/></button>
+      <button className="mobile-menu icon-btn" aria-label={mobileMenu ? "Close categories menu" : "Open categories menu"} aria-expanded={mobileMenu} aria-controls="category-dropdown" onClick={()=>setMobileMenu(!mobileMenu)}><Menu size={22}/></button>
       <button className="brand-button" onClick={()=>{setActiveCategory('All products');setQuery('');window.scrollTo({top:0,behavior:'smooth'});}}><Brand /></button>
       <div className="search-box"><Search size={19}/><input value={query} onChange={e=>{setQuery(e.target.value);setShowAll(true);}} placeholder="Search products, brands and more..." /><kbd>↵</kbd><button onClick={()=>document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}>Search</button></div>
       <div className="header-actions">
