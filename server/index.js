@@ -29,7 +29,11 @@ const trustProxySetting = (() => {
 })();
 app.set('trust proxy', trustProxySetting);
 app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+    directives: {
+      imgSrc: ["'self'", 'data:', 'https://images.unsplash.com'],
+    },
+  } : false,
   crossOriginEmbedderPolicy: false,
 }));
 app.use(express.json({ limit: '100kb' }));
