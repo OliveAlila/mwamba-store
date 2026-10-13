@@ -25,6 +25,34 @@ app.use(helmet({
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 
+// Allow explicitly configured frontends to read the public catalogue API.
+// Keep the origin allowlist exact; do not use wildcard origins with cookies.
+const allowedOrigins = new Set(
+  (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(origin => origin.trim()).filter(Boolean)
+);
+app.use((req, res, next) => {
+  const origin = req.get('Origin');
+  if (!origin) return next();
+
+  try {
+    if (new URL(origin).host === req.get('host')) return next();
+  } catch {
+    return res.status(403).json({ error: 'Invalid request origin.' });
+  }
+
+  if (!allowedOrigins.has(origin)) {
+    return res.status(403).json({ error: 'Origin is not allowed by this API.' });
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.vary('Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  return next();
+});
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 300,

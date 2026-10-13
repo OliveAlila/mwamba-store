@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Search, ShoppingCart, Heart, UserRound, Menu, ChevronRight, ChevronDown,
   Zap, Truck, ShieldCheck, Headphones, Star, Plus, Minus, X, Package,
@@ -32,16 +32,17 @@ const initialProducts = [
 ];
 
 const money = value => 'KSh ' + Number(value).toLocaleString('en-KE');
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
 function Brand() {
   return <div className="brand-lockup"><span className="brand-mark">m<span>.</span></span><span className="brand-name">mwamba<span>store</span></span></div>;
 }
 
 function ProductCard({ product, wished, onWish, onAdd }) {
-  const discount = Math.round((1 - product.price / product.oldPrice) * 100);
+  const discount = product.oldPrice > product.price ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
   return <article className="product-card">
     <div className="product-art-wrap">
-      <span className="sale-badge">{product.badge || `−${discount}%`}</span>
+      <span className="sale-badge">{product.badge || (discount ? `−${discount}%` : 'NEW')}</span>
       <button className={`wish-btn ${wished ? 'is-wished' : ''}`} aria-label="Add to wishlist" onClick={() => onWish(product.id)}><Heart size={18} fill={wished ? 'currentColor' : 'none'} /></button>
       <div className={`product-art ${product.tint}`}><img src={product.image} alt={product.name} loading="lazy" onError={e => { e.currentTarget.hidden = true; e.currentTarget.nextElementSibling.hidden = false; }} /><span className="product-art-fallback" hidden>{product.art}</span></div>
     </div>
@@ -49,7 +50,7 @@ function ProductCard({ product, wished, onWish, onAdd }) {
       <p className="product-category">{product.category}</p>
       <h3>{product.name}</h3>
       <div className="rating"><Star size={13} fill="currentColor" /><b>{product.rating}</b><span>({product.reviews})</span></div>
-      <div className="price-line"><strong>{money(product.price)}</strong><del>{money(product.oldPrice)}</del></div>
+      <div className="price-line"><strong>{money(product.price)}</strong>{product.oldPrice > product.price && <del>{money(product.oldPrice)}</del>}</div>
       <button className="add-cart" onClick={() => onAdd(product)}><Plus size={16} /> Add to cart</button>
     </div>
   </article>;
@@ -66,7 +67,36 @@ function App() {
   const [adminTab, setAdminTab] = useState('Overview');
   const [showAll, setShowAll] = useState(false);
   const [notice, setNotice] = useState('');
-  const products = initialProducts;
+  const [catalogueProducts, setCatalogueProducts] = useState(import.meta.env.DEV ? initialProducts : []);
+  const [catalogueError, setCatalogueError] = useState('');
+  const products = catalogueProducts;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_BASE}/api/products`, { headers: { Accept: 'application/json' }, signal: controller.signal })
+      .then(response => {
+        if (!response.ok) throw new Error(`Catalogue request failed (${response.status}).`);
+        return response.json();
+      })
+      .then(data => {
+        if (!Array.isArray(data.products)) throw new Error('The catalogue API returned an unexpected response.');
+        setCatalogueProducts(data.products.map(product => {
+          const price = Number(product.price);
+          const oldPrice = product.compare_at_price == null ? price : Number(product.compare_at_price);
+          return {
+            id: Number(product.id), name: product.name, category: product.category || 'Uncategorised',
+            price, oldPrice, rating: 0, reviews: 0,
+            badge: oldPrice > price ? `-${Math.round((1 - price / oldPrice) * 100)}%` : '',
+            art: '🛍️', tint: 'lavender', image: product.image_url || '',
+          };
+        }));
+        setCatalogueError('');
+      })
+      .catch(error => {
+        if (error.name !== 'AbortError') setCatalogueError('We could not load the live catalogue. Check the backend URL and API health, then refresh.');
+      });
+    return () => controller.abort();
+  }, []);
 
   const visibleProducts = useMemo(() => {
     let result = products.filter(p => (activeCategory === 'All products' || p.category === activeCategory) && (p.name.toLowerCase().includes(query.toLowerCase()) || p.category.toLowerCase().includes(query.toLowerCase())));
@@ -133,7 +163,7 @@ function App() {
 
       <section className="products-section" id="products"><div className="section-heading product-heading"><div><span className="eyebrow">GOOD FINDS, PICKED FOR YOU</span><h2>{activeCategory==='All products'?'Popular right now':activeCategory}</h2><p>Everyday essentials and little luxuries worth discovering.</p></div><div className="product-tools"><label><SlidersHorizontal size={16}/><select value={sort} onChange={e=>setSort(e.target.value)}><option value="featured">Featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="rating">Top rated</option></select></label></div></div>
         <div className="product-grid">{visibleProducts.map(p=><ProductCard key={p.id} product={p} wished={wishlist.includes(p.id)} onWish={toggleWish} onAdd={addToCart}/>)}</div>
-        {visibleProducts.length===0&&<div className="empty-state"><Search size={30}/><h3>No products found</h3><p>Try a different search or choose another category.</p><button className="dark-btn" onClick={()=>{setQuery('');setActiveCategory('All products')}}>Clear filters</button></div>}
+        {visibleProducts.length===0&&<div className="empty-state"><Search size={30}/>{catalogueError ? <><h3>Catalogue unavailable</h3><p>{catalogueError}</p></> : <><h3>No products found</h3><p>Try a different search or choose another category.</p></>}<button className="dark-btn" onClick={()=>{setQuery('');setActiveCategory('All products')}}>Clear filters</button></div>}
         {visibleProducts.length>0&&<button className="load-more" onClick={()=>{setShowAll(!showAll);if(showAll)document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>{showAll?'Show fewer products':'Explore all products'} <ArrowRight size={16}/></button>}
       </section>
 
