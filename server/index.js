@@ -84,7 +84,13 @@ app.get('/api/health', async (_req, res) => {
   try {
     await pingDatabase();
     return res.json({ status: 'ok', service: 'mwamba-store-api', database: 'connected' });
-  } catch {
+  } catch (error) {
+    // Keep credentials out of logs; record only the database error code and safe message
+    // so production diagnostics can distinguish missing env vars, denied access, and schema issues.
+    console.error('[health] database check failed', {
+      code: error?.code || 'UNKNOWN_DB_ERROR',
+      message: String(error?.message || 'Database health check failed').slice(0, 240),
+    });
     return res.status(503).json({ status: 'degraded', service: 'mwamba-store-api', database: 'unavailable' });
   }
 });
