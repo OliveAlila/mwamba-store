@@ -17,6 +17,7 @@ For customer accounts and checkout, serve the Vite build and Express API from th
    - `DB_PASSWORD`: database user's password
    - `JWT_SECRET`: random secret of at least 32 characters
    - `STORE_CURRENCY=KES`
+   - `TRUST_PROXY=1` (enabled automatically by default when `NODE_ENV=production`)
 4. Set `PAYSTACK_SECRET_KEY` and `PAYSTACK_CALLBACK_URL` only if you are testing Paystack; use test credentials first. Never expose the secret key in browser code or commit it.
 5. Redeploy/restart the Node.js application after changing environment values.
 

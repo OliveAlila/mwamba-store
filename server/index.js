@@ -18,7 +18,16 @@ const port = Number(process.env.PORT || 3000);
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 app.disable('x-powered-by');
-app.set('trust proxy', process.env.TRUST_PROXY === '1' ? 1 : false);
+const trustProxySetting = (() => {
+  if (process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true') return 1;
+  if (process.env.TRUST_PROXY === '0' || process.env.TRUST_PROXY === 'false') return false;
+  if (process.env.TRUST_PROXY) {
+    const num = Number(process.env.TRUST_PROXY);
+    return Number.isInteger(num) ? num : process.env.TRUST_PROXY;
+  }
+  return process.env.NODE_ENV === 'production' ? 1 : false;
+})();
+app.set('trust proxy', trustProxySetting);
 app.use(helmet({
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
   crossOriginEmbedderPolicy: false,
@@ -59,12 +68,14 @@ const apiLimiter = rateLimit({
   limit: 300,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 12,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { error: 'Too many authentication attempts. Try again later.' },
 });
 

@@ -20,6 +20,7 @@ In the Node.js application's **server-side environment variables** in hPanel, se
 - `DB_USER=<database username from hPanel>`
 - `DB_PASSWORD=<database user's password>`
 - `JWT_SECRET=<a unique random secret of at least 32 characters>`
+- `TRUST_PROXY=1` (enabled automatically by default when `NODE_ENV=production`)
 
 Generate a secret locally rather than in chat. For example, on PowerShell: `[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))`. Paste the generated value into the private Hostinger environment settings. Never put production secrets in GitHub, frontend `VITE_*` variables, screenshots, or client-side code.
 
