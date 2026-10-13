@@ -18,5 +18,9 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install
+      - name: Check backend JavaScript syntax
+        run: |
+          node --check server.js
+          for file in server/*.js scripts/*.js; do node --check "$file"; done
       - name: Build frontend
         run: npm run build
