@@ -87,6 +87,7 @@ function App() {
       if (cancelled) return;
       const liveProducts = (catalogue.products || []).map(product => ({
         ...product,
+        category: product.category || 'Uncategorised',
         price: Number(product.price),
         oldPrice: product.compare_at_price == null ? null : Number(product.compare_at_price),
         rating: null,
