@@ -9,6 +9,7 @@ import authRoutes from './auth.js';
 import productRoutes from './products.js';
 import categoryRoutes from './categories.js';
 import paymentRoutes from './payments.js';
+import adminRoutes from './admin.js';
 import { pingDatabase } from './db.js';
 import { requireAdmin, requireAuth, requireSameOrigin } from './security.js';
 
@@ -87,6 +88,7 @@ app.use('/api/auth', requireSameOrigin, authLimiter, authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/payments', requireSameOrigin, paymentRoutes);
+app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
 
 app.get('/api/admin/summary', requireAuth, requireAdmin, async (_req, res, next) => {
   try {

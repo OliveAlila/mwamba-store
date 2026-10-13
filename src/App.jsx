@@ -120,6 +120,7 @@ function App() {
   const [adminBusy, setAdminBusy] = useState(false);
   const [paymentError, setPaymentError] = useState('');
   const [returnMessage, setReturnMessage] = useState('');
+  const [paymentReference, setPaymentReference] = useState(() => new URLSearchParams(window.location.search).get('reference') || '');
 
   const loadStorefront = async () => {
     setLoadingProducts(true);
@@ -142,9 +143,12 @@ function App() {
   const loadCurrentUser = async () => {
     try {
       const result = await api('/api/auth/me');
-      setUser(result.user || null);
+      const currentUser = result.user || null;
+      setUser(currentUser);
+      return currentUser;
     } catch {
       setUser(null);
+      return null;
     }
   };
 
@@ -153,8 +157,12 @@ function App() {
     setAdminBusy(true);
     try {
       if (tab === 'Overview') {
-        const summary = await api('/api/admin/summary');
+        const [summary, productResult] = await Promise.all([
+          api('/api/admin/summary'),
+          api('/api/products/admin/all'),
+        ]);
         setAdminSummary(summary);
+        setAdminProducts(productResult.products || []);
       } else if (tab === 'Products') {
         const result = await api('/api/products/admin/all');
         setAdminProducts(result.products || []);
@@ -173,14 +181,39 @@ function App() {
 
   useEffect(() => {
     loadStorefront();
-    loadCurrentUser();
-    const reference = new URLSearchParams(window.location.search).get('reference');
-    if (reference) {
+    const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+    const isAdminPath = pathname === '/admin';
+    loadCurrentUser().then(currentUser => {
+      if (isAdminPath) {
+        if (currentUser?.role === 'admin') setDrawer('admin');
+        else {
+          setDrawer('account');
+          setNotice('Sign in with an administrator account to access the admin workspace.');
+        }
+      }
+    });
+    if (pathname === '/login' || pathname === '/register' || pathname === '/account') {
+      setAuthMode(pathname === '/register' ? 'register' : 'login');
+      setDrawer('account');
+    }
+    if (paymentReference) {
       setReturnMessage('Payment return received. Sign in with the account used for checkout to verify your order.');
       setDrawer('account');
-      window.history.replaceState({}, '', window.location.pathname);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('reference');
+      url.searchParams.delete('trxref');
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
     }
   }, []);
+
+  useEffect(() => {
+    if (!paymentReference) return;
+    if (!user) {
+      setDrawer('account');
+      return;
+    }
+    verifyPaymentReturn(paymentReference);
+  }, [paymentReference, user]);
 
   useEffect(() => {
     if (drawer === 'admin') {
@@ -244,9 +277,6 @@ function App() {
       });
       setUser(result.user);
       setNotice(authMode === 'register' ? 'Your account has been created.' : 'Signed in successfully.');
-      if (returnMessage && new URLSearchParams(window.location.search).get('reference')) {
-        await verifyPaymentReturn(new URLSearchParams(window.location.search).get('reference'));
-      }
       setReturnMessage('');
     } catch (error) {
       setNotice(formatApiError(error));
@@ -263,6 +293,8 @@ function App() {
   };
 
   const verifyPaymentReturn = async reference => {
+    if (!reference) return;
+    setPaymentReference('');
     try {
       const result = await api('/api/payments/verify/' + encodeURIComponent(reference));
       setCart([]);
@@ -382,7 +414,38 @@ function App() {
           <button className="dark-btn" disabled={adminBusy}><Plus size={16}/> Create category</button>
         </form></section>
         <section className="admin-panel"><div className="panel-heading"><div><h3>Categories</h3><p>{adminCategories.length} configured</p></div></div><div className="admin-table-wrap"><table><thead><tr><th>NAME</th><th>SLUG</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>{adminCategories.map(c=><tr key={c.id}><td>{c.name}</td><td>{c.slug}</td><td>{c.is_active?'Active':'Inactive'}</td><td>{c.is_active&&<button className="text-link" onClick={async()=>{try{await api('/api/categories/'+c.id,{method:'DELETE'});await loadAdminData('Categories');await loadStorefront();setNotice('Category deactivated.');}catch(error){setNotice(formatApiError(error));}}}>Deactivate</button>}</td></tr>)}</tbody></table></div></section>
-      </div> : <section className="admin-panel admin-placeholder"><div className="placeholder-icon"><Boxes size={30}/></div><h2>{adminTab} management</h2><p>The live {adminTab.toLowerCase()} management module is not implemented yet. It is intentionally not displaying sample records.</p></section>}
+      </div> : adminTab==='Orders' ? <section className="admin-panel">
+        <div className="panel-heading"><div><h3>Customer orders</h3><p>{adminOrders.length} recent orders · paid orders can move through fulfillment</p></div></div>
+        <div className="admin-table-wrap"><table><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>PAYMENT</th><th>TOTAL</th><th>FULFILLMENT</th></tr></thead><tbody>
+          {adminOrders.map(o=><tr key={o.id}><td><b>{o.order_number}</b><small>{new Date(o.created_at).toLocaleDateString()}</small></td><td>{o.customer_name}<small>{o.customer_email}</small></td><td>{o.payment_status}</td><td>{money(o.total)}</td><td><select aria-label={'Fulfillment status for '+o.order_number} value={o.status} disabled={adminBusy} onChange={e=>updateOrderStatus(o.id,e.target.value)}><option value={o.status}>{o.status.replaceAll('_',' ')}</option>{o.payment_status==='paid'&&['processing','packed','shipped','delivered'].filter(s=>s!==o.status).map(s=><option key={s} value={s}>{s}</option>)}{o.status!=='review_required'&&<option value="review_required">review required</option>}</select></td></tr>)}
+        </tbody></table>{!adminOrders.length&&<p>No orders yet.</p>}</div>
+      </section> : adminTab==='Customers' ? <section className="admin-panel">
+        <div className="panel-heading"><div><h3>Customers</h3><p>{adminCustomers.length} customer accounts</p></div></div>
+        <div className="admin-table-wrap"><table><thead><tr><th>CUSTOMER</th><th>STATUS</th><th>ORDERS</th><th>PAID TOTAL</th><th>JOINED</th></tr></thead><tbody>
+          {adminCustomers.map(customer=><tr key={customer.id}><td><b>{customer.name}</b><small>{customer.email}</small></td><td>{customer.status}</td><td>{customer.order_count}</td><td>{money(customer.paid_total)}</td><td>{new Date(customer.created_at).toLocaleDateString()}</td></tr>)}
+        </tbody></table>{!adminCustomers.length&&<p>No customer accounts yet.</p>}</div>
+      </section> : adminTab==='Promotions' ? <div className="admin-panels">
+        <section className="admin-panel"><div className="panel-heading"><div><h3>Create a promotion</h3><p>New promotions are created inactive and must be activated intentionally.</p></div></div>
+          <form className="admin-form" onSubmit={createPromotion}>
+            <label>Promotion name<input required minLength="2" maxLength="160" value={promotionForm.name} onChange={e=>setPromotionForm({...promotionForm,name:e.target.value})}/></label>
+            <label>Code (optional)<input maxLength="60" placeholder="WELCOME10" value={promotionForm.code} onChange={e=>setPromotionForm({...promotionForm,code:e.target.value.toUpperCase()})}/></label>
+            <label>Discount type<select value={promotionForm.discount_type} onChange={e=>setPromotionForm({...promotionForm,discount_type:e.target.value})}><option value="percentage">Percentage (%)</option><option value="fixed">Fixed amount (KES)</option></select></label>
+            <label>Discount value<input required type="number" min="0.01" max={promotionForm.discount_type==='percentage'?'100':undefined} step="0.01" value={promotionForm.discount_value} onChange={e=>setPromotionForm({...promotionForm,discount_value:e.target.value})}/></label>
+            <label>Starts at (optional)<input type="datetime-local" value={promotionForm.starts_at} onChange={e=>setPromotionForm({...promotionForm,starts_at:e.target.value})}/></label>
+            <label>Ends at (optional)<input type="datetime-local" value={promotionForm.ends_at} onChange={e=>setPromotionForm({...promotionForm,ends_at:e.target.value})}/></label>
+            <button className="dark-btn" disabled={adminBusy}><Plus size={16}/>{adminBusy?'Saving…':'Create promotion'}</button>
+          </form>
+        </section>
+        <section className="admin-panel"><div className="panel-heading"><div><h3>Promotions</h3><p>{adminPromotions.length} configured</p></div></div>
+          <div className="admin-table-wrap"><table><thead><tr><th>NAME / CODE</th><th>DISCOUNT</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>
+            {adminPromotions.map(p=><tr key={p.id}><td><b>{p.name}</b><small>{p.code || 'No code'}</small></td><td>{p.discount_type==='percentage'?p.discount_value+'%':money(p.discount_value)}</td><td>{p.is_active?'Active':'Inactive'}</td><td><button className="text-link" disabled={adminBusy} onClick={()=>togglePromotion(p)}>{p.is_active?'Deactivate':'Activate'}</button></td></tr>)}
+          </tbody></table>{!adminPromotions.length&&<p>No promotions created yet.</p>}</div>
+        </section>
+      </div> : <section className="admin-panel">
+        <div className="panel-heading"><div><h3>Store configuration</h3><p>Read-only status from the server. Secret values are never sent to the browser.</p></div></div>
+        {publicConfig ? <div className="stats-grid"><div className="stat-card"><span>Store currency</span><h3>{publicConfig.currency || 'KES'}</h3><small>Displayed prices use this currency.</small></div><div className="stat-card"><span>Paystack configuration</span><h3>{publicConfig.paymentsConfigured?'Configured':'Not configured'}</h3><small>{publicConfig.paymentsConfigured?'Server has a secret key and HTTPS callback URL.':'Set PAYSTACK_SECRET_KEY and PAYSTACK_CALLBACK_URL in Hostinger.'}</small></div></div> : <p>Loading configuration…</p>}
+        <p className="inline-notice">Database credentials and payment secret keys are intentionally not displayed here.</p>
+      </section>}
     </main>
   </div>;
 
@@ -398,18 +461,18 @@ function App() {
         <button className="header-action cart-action" onClick={()=>setDrawer('cart')}><span className="action-icon"><ShoppingCart size={22}/><i>{cartCount}</i></span><span><small>Your bag</small><b>Cart</b></span></button>
       </div>
     </header>
-    <nav className={mobileMenu?'category-nav mobile-open':'category-nav'}><button className="all-categories" onClick={()=>setMobileMenu(!mobileMenu)}><Menu size={17}/> All categories <ChevronDown size={14}/></button>{['Phones & Tablets','Fashion','Home & Living','Electronics','Beauty','Sports & Outdoors'].map(c=><button key={c} className={activeCategory===c?'nav-category selected':''} onClick={()=>{goCategory(c);setMobileMenu(false)}}>{c}</button>)}<button className="nav-deals" onClick={()=>{setActiveCategory('All products');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}><Zap size={15} fill="currentColor"/> Deals</button></nav>
+    <nav className={mobileMenu?'category-nav mobile-open':'category-nav'}><button className="all-categories" onClick={()=>setMobileMenu(!mobileMenu)}><Menu size={17}/> All categories <ChevronDown size={14}/></button>{(categoryData.length ? [...categories.filter(c => categoryData.some(live => live.name === c.name)), ...categoryData.filter(live => !categories.some(c => c.name === live.name)).map(live => ({ name: live.name }))].map(c => c.name).slice(0,6) : ['Phones & Tablets','Fashion','Home & Living','Electronics','Beauty','Sports & Outdoors']).map(c=><button key={c} className={activeCategory===c?'nav-category selected':''} onClick={()=>{goCategory(c);setMobileMenu(false)}}>{c}</button>)}<button className="nav-deals" onClick={()=>{setActiveCategory('All products');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}><Zap size={15} fill="currentColor"/> Deals</button></nav>
 
     <main>
       <section className="hero-layout">
-        <aside className="category-rail"><div className="rail-title">SHOP BY CATEGORY</div>{categories.slice(0,8).map(({name,icon:Icon})=><button key={name} onClick={()=>goCategory(name)}><Icon size={17}/><span>{name}</span><ChevronRight size={14}/></button>)}<button className="view-cats" onClick={()=>goCategory('All products')}>View all categories <ArrowRight size={15}/></button></aside>
+        <aside className="category-rail"><div className="rail-title">SHOP BY CATEGORY</div>{(categoryData.length ? [...categories.filter(c => categoryData.some(live => live.name === c.name)), ...categoryData.filter(live => !categories.some(c => c.name === live.name)).map(live => ({ name: live.name, icon: Tag }))] : categories).slice(0,8).map(({name,icon:Icon})=><button key={name} onClick={()=>goCategory(name)}><Icon size={17}/><span>{name}</span><ChevronRight size={14}/></button>)}<button className="view-cats" onClick={()=>goCategory('All products')}>View all categories <ArrowRight size={15}/></button></aside>
         <div className="hero-main">
           <div className="hero-banner"><div className="hero-copy"><span className="hero-kicker"><Sparkles size={14}/> THE MWAMBA EVERYDAY EDIT</span><h1>Good things.<br/><em>Great prices.</em></h1><p>Discover the little upgrades that make<br className="desktop-break"/> everyday life feel extraordinary.</p><button onClick={()=>{setActiveCategory('All products');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>Explore the store <ArrowRight size={17}/></button><div className="hero-dots"><span className="active"/><span/><span/></div></div><div className="hero-art"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><div className="hero-product hero-phone">📱</div><div className="hero-product hero-headphones">🎧</div><div className="hero-product hero-bag">👜</div><div className="hero-product hero-sneaker">👟</div><div className="hero-sticker"><span>FRESH</span><b>FINDS</b><small>EVERY DAY</small></div></div><div className="hero-number">01 / 03</div></div>
           <div className="benefit-strip"><div><span className="benefit-icon"><Truck size={20}/></span><div><b>Convenient delivery</b><small>Across Kenya</small></div></div><div><span className="benefit-icon"><ShieldCheck size={20}/></span><div><b>Shop with confidence</b><small>Secure checkout</small></div></div><div><span className="benefit-icon"><Headphones size={20}/></span><div><b>Here to help</b><small>Customer support</small></div></div></div>
         </div>
       </section>
 
-      <section className="category-section"><div className="section-heading"><div><span className="eyebrow">FIND YOUR NEXT FAVOURITE</span><h2>Browse by category</h2></div><button className="text-link" onClick={()=>goCategory('All products')}>All categories <ArrowRight size={16}/></button></div><div className="category-grid">{categories.map(({name,color,image,icon:Icon},i)=><button className="category-tile" key={name} onClick={()=>goCategory(name)}><span className={'category-illustration '+color}><Icon size={27}/><img src={image} alt="" loading="eager" decoding="async" onError={e=>{e.currentTarget.remove();}} /></span><b>{name}</b><small>{[48,126,84,72,56,39,61,32,41,68][i]}+ items</small></button>)}</div></section>
+      <section className="category-section"><div className="section-heading"><div><span className="eyebrow">FIND YOUR NEXT FAVOURITE</span><h2>Browse by category</h2></div><button className="text-link" onClick={()=>goCategory('All products')}>All categories <ArrowRight size={16}/></button></div><div className="category-grid">{(categoryData.length ? [...categories.filter(c => categoryData.some(live => live.name === c.name)), ...categoryData.filter(live => !categories.some(c => c.name === live.name)).map(live => ({ name: live.name, color: 'lavender', image: '', icon: Tag }))] : categories).map(({name,color,image,icon:Icon})=><button className="category-tile" key={name} onClick={()=>goCategory(name)}><span className={'category-illustration '+(color || 'lavender')}><Icon size={27}/>{image&&<img src={image} alt="" loading="eager" decoding="async" onError={e=>{e.currentTarget.remove();}} />}</span><b>{name}</b><small>{products.filter(p=>p.category===name).length} items</small></button>)}</div></section>
 
       <section className="deal-banner"><div className="deal-mark"><Zap size={24} fill="currentColor"/></div><div className="deal-copy"><span>THE DAILY DROP</span><h2>Little prices. Big energy.</h2><p>Handpicked deals for your everyday.</p></div><div className="deal-countdown"><span>THIS WEEK'S FINDS</span><div><b>01</b><i>:</i><b>24</b><i>:</i><b>36</b></div><small>Hours&nbsp;&nbsp;&nbsp; Mins&nbsp;&nbsp;&nbsp; Secs</small></div><button onClick={()=>{setActiveCategory('All products');setSort('price-low');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>Shop the deals <ArrowRight size={17}/></button><div className="deal-decoration">✳</div></section>
 
