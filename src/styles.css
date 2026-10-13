@@ -251,3 +251,16 @@
   .category-dropdown { left:16px; }
   .hero-layout { display:block; margin-top:12px; }
 }
+
+
+/* Remove the persistent category rail; categories are accessed from the hamburger dropdown. */
+.category-rail { display:none !important; }
+.hero-layout { grid-template-columns:minmax(0,1fr) !important; }
+.mobile-menu { display:grid !important; flex:0 0 auto; width:42px; height:42px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); place-items:center; }
+.mobile-menu:hover, .mobile-menu[aria-expanded="true"] { border-color:var(--gold); background:var(--cream); }
+.category-nav { position:relative; z-index:20; }
+.category-dropdown { box-shadow:0 10px 28px rgba(40,37,31,.10); }
+@media (min-width:761px) {
+  .category-nav { justify-content:flex-start; }
+  .main-header { gap:18px; }
+}
