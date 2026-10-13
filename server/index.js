@@ -10,6 +10,7 @@ import productRoutes from './products.js';
 import categoryRoutes from './categories.js';
 import paymentRoutes from './payments.js';
 import adminRoutes from './admin.js';
+import bootstrapAdminRoutes from './bootstrap-admin.js';
 import { pingDatabase, query } from './db.js';
 import { requireAdmin, requireAuth, requireSameOrigin } from './security.js';
 
@@ -84,6 +85,7 @@ const authLimiter = rateLimit({
 });
 
 app.use('/api', apiLimiter);
+app.use('/api/bootstrap-admin', bootstrapAdminRoutes);
 app.get('/api/health', async (_req, res) => {
   try {
     await pingDatabase();
