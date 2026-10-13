@@ -100,3 +100,10 @@
  .category-tile b{font-size:12px;min-height:30px}
  .hero-banner{background:#f0e2cd}
 }
+
+
+/* Category cards use real product/lifestyle photography instead of generic icons. */
+.category-illustration{overflow:hidden;position:relative;background:#f3eee5!important;border-radius:7px}
+.category-illustration img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .25s ease}
+.category-tile:hover .category-illustration img{transform:scale(1.06)}
+@media(max-width:600px){.category-illustration{width:100%;height:88px;border-radius:6px}.category-tile{min-height:150px}.category-illustration img{object-fit:cover}}
