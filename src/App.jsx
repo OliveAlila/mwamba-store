@@ -74,6 +74,8 @@ function App() {
   const [authMode, setAuthMode] = useState('login');
   const [busy, setBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [adminSummary, setAdminSummary] = useState(null);
+  const [adminLoadError, setAdminLoadError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +105,13 @@ function App() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    if (drawer !== 'admin' || user?.role !== 'admin') return;
+    let cancelled = false;
+    apiRequest('/admin/summary').then(data => { if (!cancelled) { setAdminSummary(data); setAdminLoadError(''); } }).catch(error => { if (!cancelled) setAdminLoadError(error.message); });
+    return () => { cancelled = true; };
+  }, [drawer, user]);
+
   const visibleProducts = useMemo(() => {
     let result = products.filter(p => (activeCategory === 'All products' || p.category === activeCategory) && (p.name.toLowerCase().includes(query.toLowerCase()) || p.category.toLowerCase().includes(query.toLowerCase())));
     if (sort === 'price-low') result = [...result].sort((a,b) => a.price-b.price);
@@ -122,6 +131,8 @@ function App() {
   const goCategory = name => { setActiveCategory(name); setShowAll(true); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); };
   const startCheckout = () => { setDrawer('checkout'); };
 
+  if (drawer === 'admin' && user?.role !== 'admin') return <div className="drawer-backdrop"><section className="drawer"><div className="drawer-header"><div><span className="eyebrow">MWAMBA STORE</span><h2>Administrator sign-in required</h2></div><button className="icon-btn" onClick={() => setDrawer('')}><X size={22}/></button></div><p>The admin workspace is restricted to authenticated administrator accounts.</p><button className="dark-btn full-btn" onClick={() => { setDrawer('account'); setAuthMode('login'); }}>Sign in to continue</button></section></div>;
+
   if (drawer === 'admin') return <div className="admin-shell">
     <aside className="admin-sidebar">
       <Brand /><div className="admin-label">STORE MANAGEMENT</div>
@@ -132,7 +143,7 @@ function App() {
       <header className="admin-topbar"><div><span className="eyebrow">WORKSPACE / {adminTab.toUpperCase()}</span><h1>{adminTab}</h1></div><div className="admin-profile"><span className="avatar">M</span><div><b>Store Admin</b><small>Administrator</small></div><ChevronDown size={16}/></div></header>
       {adminTab==='Overview' ? <>
         <div className="admin-welcome"><div><p>YOUR STORE AT A GLANCE</p><h2>Good day, Admin 👋</h2><span>Here’s what’s happening with Mwamba Store.</span></div><button className="dark-btn" onClick={()=>setAdminTab('Products')}><Plus size={17}/> Manage products</button></div>
-        <div className="stats-grid">{[['Total revenue','KSh 284,650','↑ 12.8%','This month'],['Orders','186','↑ 8.2%','vs last month'],['Products','248','12 low stock','In your catalogue'],['Customers','1,204','↑ 16.4%','Total registered']].map(([label,value,trend,sub])=><div className="stat-card" key={label}><span>{label}</span><h3>{value}</h3><div><b>{trend}</b><small>{sub}</small></div></div>)}</div>
+        <div className="stats-grid">{[['Total revenue',money(adminSummary?.revenue ?? 0),'Database total','Paid orders this month'],['Orders',adminSummary?.orders ?? '—','Live count','All orders'],['Products',adminSummary?.products ?? '—','Live count','Non-archived products'],['Customers',adminSummary?.customers ?? '—','Live count','Active customer accounts']].map(([label,value,trend,sub])=><div className="stat-card" key={label}><span>{label}</span><h3>{value}</h3><div><b>{trend}</b><small>{sub}</small></div></div>)}</div>{adminLoadError&&<p className="inline-notice">Could not load live admin metrics: {adminLoadError}</p>}
         <div className="admin-panels"><section className="admin-panel"><div className="panel-heading"><div><h3>Recent orders</h3><p>Your latest customer purchases</p></div><button onClick={()=>setAdminTab('Orders')}>View all <ArrowRight size={15}/></button></div><table><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>AMOUNT</th><th>STATUS</th></tr></thead><tbody>{[['#MW-1048','Faith Wanjiku','KSh 4,890','Processing'],['#MW-1047','Brian Otieno','KSh 2,499','Delivered'],['#MW-1046','Amina Hassan','KSh 7,250','Pending'],['#MW-1045','Kevin Mwangi','KSh 1,850','Delivered']].map(r=><tr key={r[0]}>{r.map((v,i)=><td key={v}>{i===3?<span className={'status '+v.toLowerCase()}>{v}</span>:v}</td>)}</tr>)}</tbody></table></section>
         <section className="admin-panel inventory-panel"><div className="panel-heading"><div><h3>Inventory watch</h3><p>Products that need attention</p></div><Boxes size={19}/></div>{[['Portable Speaker','4 left','low'],['Ceramic Table Lamp','7 left','low'],['Classic Sneakers','24 left','ok'],['Skincare Set','2 left','low']].map(r=><div className="inventory-row" key={r[0]}><span className="mini-product">▦</span><div><b>{r[0]}</b><small>Stock level</small></div><span className={r[2]==='low'?'stock-low':'stock-ok'}>{r[1]}</span></div>)}</section></div>
       </> : <section className="admin-panel admin-placeholder"><div className="placeholder-icon"><Boxes size={30}/></div><h2>{adminTab} management</h2><p>This workspace is ready for the live {adminTab.toLowerCase()} module. The next build step connects this view to persistent product, order, and customer data.</p>{adminTab==='Products'&&<button className="dark-btn" onClick={()=>setNotice('Product management API is the next integration step.')}><Plus size={17}/> Add product</button>}{notice&&<p className="inline-notice">{notice}</p>}</section>}
