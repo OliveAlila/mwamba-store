@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search, ShoppingCart, Heart, UserRound, Menu, ChevronRight, ChevronDown,
   Zap, Truck, ShieldCheck, Headphones, Star, Plus, Minus, X, Package,
@@ -149,6 +149,7 @@ function App() {
   const [adminTab, setAdminTab] = useState('Overview');
   const [showAll, setShowAll] = useState(false);
   const [notice, setNotice] = useState('');
+  const noticeTimerRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
   const [user, setUser] = useState(null);
@@ -249,6 +250,15 @@ function App() {
   };
 
   useEffect(() => {
+    if (!notice) return undefined;
+    if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = window.setTimeout(() => setNotice(''), 1800);
+    return () => {
+      if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    };
+  }, [notice]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setHeroSlide(current => (current + 1) % heroSlides.length), 5500);
     return () => window.clearInterval(timer);
   }, []);
@@ -344,7 +354,7 @@ function App() {
   const addToCart = product => {
     if (!product?.id) return;
     setCart(old => old.some(item => item.id === product.id) ? old.map(item => item.id === product.id ? {...item, qty: item.qty + 1} : item) : [...old, {...product, qty: 1}]);
-    setNotice('Added to your cart'); setTimeout(() => setNotice(''), 2200);
+    setNotice('Added to your cart');
   };
   const changeQty = (id, delta) => setCart(old => old.map(item => item.id === id ? {...item, qty: item.qty + delta} : item).filter(item => item.qty > 0));
   const toggleWish = id => setWishlist(old => old.includes(id) ? old.filter(x => x !== id) : [...old, id]);
@@ -657,7 +667,7 @@ function App() {
 
       <section className="trust-section"><div className="trust-heading"><span className="eyebrow">A LITTLE MORE PEACE OF MIND</span><h2>Shopping should feel good.</h2></div><div className="trust-grid"><div><Truck size={23}/><h3>Delivery made simple</h3><p>Convenient delivery options for your location.</p></div><div><ShieldCheck size={23}/><h3>Checkout you can trust</h3><p>Your shopping experience and payment security matter.</p></div><div><Headphones size={23}/><h3>Real help, when needed</h3><p>Our team is here to help you shop with confidence.</p></div></div></section>
     </main>
-    <footer className="footer"><div className="footer-top"><div className="footer-brand"><Brand/><p>Everyday essentials, unexpected finds,<br/>and good prices all in one place.</p><div className="social-dots"><button aria-label="Facebook" onClick={()=>setNotice("Mwamba Store social links will be connected before launch.")}>f</button><button aria-label="Instagram" onClick={()=>setNotice("Mwamba Store social links will be connected before launch.")}>◎</button><button aria-label="X" onClick={()=>setNotice("Mwamba Store social links will be connected before launch.")}>𝕏</button></div></div><div><h4>SHOP</h4><button onClick={()=>goCategory('All products')}>All products</button><button onClick={()=>goCategory('Fashion')}>Fashion</button><button onClick={()=>goCategory('Electronics')}>Electronics</button><button onClick={()=>goCategory('Home & Living')}>Home & Living</button></div><div><h4>YOUR MWAMBA</h4><button onClick={()=>setDrawer('account')}>My account</button><button onClick={()=>setDrawer('cart')}>Shopping cart</button><button onClick={()=>setDrawer('wishlist')}>Wishlist</button><button onClick={()=>setDrawer('account')}>Order history</button></div><div className="newsletter"><h4>A GOOD THING IN YOUR INBOX</h4><p>Get first dibs on new finds and special deals.</p><form onSubmit={e=>{e.preventDefault();setNotice('Thanks for joining the Mwamba list!');setTimeout(()=>setNotice(''),2500)}}><input type="email" placeholder="Your email address" required/><button aria-label="Subscribe"><ArrowRight size={18}/></button></form>{notice&&<small className="newsletter-notice">{notice}</small>}</div></div><div className="footer-bottom"><span>© 2026 Mwamba Store. Made for everyday living.</span><div><button onClick={()=>setNotice("Privacy information will be published before launch.")}>Privacy</button><button onClick={()=>setNotice("Terms and conditions will be published before launch.")}>Terms</button><button onClick={()=>setNotice("Customer support details will be added before launch.")}>Help centre</button></div><span className="footer-pay">Secure payments · Paystack</span></div></footer>
+    <footer className="footer"><div className="footer-top"><div className="footer-brand"><Brand/><p>Everyday essentials, unexpected finds,<br/>and good prices all in one place.</p><div className="social-dots"><button aria-label="Facebook" onClick={()=>setNotice("Mwamba Store social links will be connected before launch.")}>f</button><button aria-label="Instagram" onClick={()=>setNotice("Mwamba Store social links will be connected before launch.")}>◎</button><button aria-label="X" onClick={()=>setNotice("Mwamba Store social links will be connected before launch.")}>𝕏</button></div></div><div><h4>SHOP</h4><button onClick={()=>goCategory('All products')}>All products</button><button onClick={()=>goCategory('Fashion')}>Fashion</button><button onClick={()=>goCategory('Electronics')}>Electronics</button><button onClick={()=>goCategory('Home & Living')}>Home & Living</button></div><div><h4>YOUR MWAMBA</h4><button onClick={()=>setDrawer('account')}>My account</button><button onClick={()=>setDrawer('cart')}>Shopping cart</button><button onClick={()=>setDrawer('wishlist')}>Wishlist</button><button onClick={()=>setDrawer('account')}>Order history</button></div><div className="newsletter"><h4>A GOOD THING IN YOUR INBOX</h4><p>Get first dibs on new finds and special deals.</p><form onSubmit={e=>{e.preventDefault();setNotice('Thanks for joining the Mwamba list!')}}><input type="email" placeholder="Your email address" required/><button aria-label="Subscribe"><ArrowRight size={18}/></button></form>{notice&&<small className="newsletter-notice">{notice}</small>}</div></div><div className="footer-bottom"><span>© 2026 Mwamba Store. Made for everyday living.</span><div><button onClick={()=>setNotice("Privacy information will be published before launch.")}>Privacy</button><button onClick={()=>setNotice("Terms and conditions will be published before launch.")}>Terms</button><button onClick={()=>setNotice("Customer support details will be added before launch.")}>Help centre</button></div><span className="footer-pay">Secure payments · Paystack</span></div></footer>
     <nav className="mobile-bottom-nav"><button onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}><House size={19}/><span>Home</span></button><button onClick={()=>goCategory('All products')}><Search size={19}/><span>Explore</span></button><button onClick={()=>setDrawer('wishlist')}><Heart size={19}/><span>Saved</span></button><button onClick={()=>setDrawer('cart')}><ShoppingCart size={19}/><span>Cart {cartCount>0&&`(${cartCount})`}</span></button><button onClick={()=>setDrawer('account')}><CircleUserRound size={19}/><span>Account</span></button></nav>
 
     {drawer && <div className="drawer-backdrop" onClick={()=>setDrawer('')}><aside className="drawer" onClick={e=>e.stopPropagation()}><div className="drawer-header"><div><span className="eyebrow">MWAMBA STORE</span><h2>{drawer==='cart'?'Your shopping bag':drawer==='wishlist'?'Your wishlist':drawer==='checkout'?'Checkout':'Welcome to Mwamba'}</h2></div><button className="icon-btn" onClick={()=>setDrawer('')}><X size={22}/></button></div>
