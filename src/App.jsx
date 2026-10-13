@@ -120,6 +120,7 @@ function App() {
   const [adminBusy, setAdminBusy] = useState(false);
   const [paymentError, setPaymentError] = useState('');
   const [returnMessage, setReturnMessage] = useState('');
+  const [paymentReference, setPaymentReference] = useState(() => new URLSearchParams(window.location.search).get('reference') || '');
 
   const loadStorefront = async () => {
     setLoadingProducts(true);
@@ -156,8 +157,12 @@ function App() {
     setAdminBusy(true);
     try {
       if (tab === 'Overview') {
-        const summary = await api('/api/admin/summary');
+        const [summary, productResult] = await Promise.all([
+          api('/api/admin/summary'),
+          api('/api/products/admin/all'),
+        ]);
         setAdminSummary(summary);
+        setAdminProducts(productResult.products || []);
       } else if (tab === 'Products') {
         const result = await api('/api/products/admin/all');
         setAdminProducts(result.products || []);
@@ -176,14 +181,39 @@ function App() {
 
   useEffect(() => {
     loadStorefront();
-    loadCurrentUser();
-    const reference = new URLSearchParams(window.location.search).get('reference');
-    if (reference) {
+    const pathname = window.location.pathname.replace(/\\/+$/, '') || '/';
+    const isAdminPath = pathname === '/admin';
+    loadCurrentUser().then(currentUser => {
+      if (isAdminPath) {
+        if (currentUser?.role === 'admin') setDrawer('admin');
+        else {
+          setDrawer('account');
+          setNotice('Sign in with an administrator account to access the admin workspace.');
+        }
+      }
+    });
+    if (pathname === '/login' || pathname === '/register' || pathname === '/account') {
+      setAuthMode(pathname === '/register' ? 'register' : 'login');
+      setDrawer('account');
+    }
+    if (paymentReference) {
       setReturnMessage('Payment return received. Sign in with the account used for checkout to verify your order.');
       setDrawer('account');
-      window.history.replaceState({}, '', window.location.pathname);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('reference');
+      url.searchParams.delete('trxref');
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
     }
   }, []);
+
+  useEffect(() => {
+    if (!paymentReference) return;
+    if (!user) {
+      setDrawer('account');
+      return;
+    }
+    verifyPaymentReturn(paymentReference);
+  }, [paymentReference, user]);
 
   useEffect(() => {
     if (drawer === 'admin') {
@@ -247,9 +277,6 @@ function App() {
       });
       setUser(result.user);
       setNotice(authMode === 'register' ? 'Your account has been created.' : 'Signed in successfully.');
-      if (returnMessage && new URLSearchParams(window.location.search).get('reference')) {
-        await verifyPaymentReturn(new URLSearchParams(window.location.search).get('reference'));
-      }
       setReturnMessage('');
     } catch (error) {
       setNotice(formatApiError(error));
@@ -266,6 +293,8 @@ function App() {
   };
 
   const verifyPaymentReturn = async reference => {
+    if (!reference) return;
+    setPaymentReference('');
     try {
       const result = await api('/api/payments/verify/' + encodeURIComponent(reference));
       setCart([]);
