@@ -441,7 +441,7 @@ function App() {
             {adminPromotions.map(p=><tr key={p.id}><td><b>{p.name}</b><small>{p.code || 'No code'}</small></td><td>{p.discount_type==='percentage'?p.discount_value+'%':money(p.discount_value)}</td><td>{p.is_active?'Active':'Inactive'}</td><td><button className="text-link" disabled={adminBusy} onClick={()=>togglePromotion(p)}>{p.is_active?'Deactivate':'Activate'}</button></td></tr>)}
           </tbody></table>{!adminPromotions.length&&<p>No promotions created yet.</p>}</div>
         </section>
-      </div> : adminTab==='Settings' ? <section className="admin-panel">
+      </div> : <section className="admin-panel">
         <div className="panel-heading"><div><h3>Store configuration</h3><p>Read-only status from the server. Secret values are never sent to the browser.</p></div></div>
         {publicConfig ? <div className="stats-grid"><div className="stat-card"><span>Store currency</span><h3>{publicConfig.currency || 'KES'}</h3><small>Displayed prices use this currency.</small></div><div className="stat-card"><span>Paystack configuration</span><h3>{publicConfig.paymentsConfigured?'Configured':'Not configured'}</h3><small>{publicConfig.paymentsConfigured?'Server has a secret key and HTTPS callback URL.':'Set PAYSTACK_SECRET_KEY and PAYSTACK_CALLBACK_URL in Hostinger.'}</small></div></div> : <p>Loading configuration…</p>}
         <p className="inline-notice">Database credentials and payment secret keys are intentionally not displayed here.</p>
