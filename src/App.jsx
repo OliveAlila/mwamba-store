@@ -21,14 +21,14 @@ const categories = [
 ];
 
 const initialProducts = [
-  { id: 1, name: 'Wireless Bluetooth Headphones', category: 'Electronics', price: 2499, oldPrice: 3999, rating: 4.7, reviews: 128, badge: '−38%', art: '🎧', tint: 'lavender' },, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=82'
-  { id: 2, name: 'Everyday Classic Sneakers', category: 'Fashion', price: 2890, oldPrice: 4200, rating: 4.5, reviews: 86, badge: '−31%', art: '👟', tint: 'peach' },, image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=82'
-  { id: 3, name: 'Smart Watch Series 8', category: 'Phones & Tablets', price: 3599, oldPrice: 5500, rating: 4.8, reviews: 204, badge: 'HOT DEAL', art: '⌚', tint: 'mint' },, image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=82'
-  { id: 4, name: 'Minimal Ceramic Table Lamp', category: 'Home & Living', price: 1850, oldPrice: 2500, rating: 4.4, reviews: 53, badge: '−26%', art: '💡', tint: 'yellow' },, image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=700&q=82'
-  { id: 5, name: 'Daily Glow Skincare Set', category: 'Beauty', price: 1699, oldPrice: 2200, rating: 4.6, reviews: 97, badge: '−23%', art: '🧴', tint: 'pink' },, image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=700&q=82'
-  { id: 6, name: 'Compact Portable Speaker', category: 'Electronics', price: 1999, oldPrice: 2800, rating: 4.5, reviews: 71, badge: '−29%', art: '🔊', tint: 'blue' },, image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=700&q=82'
-  { id: 7, name: 'Structured Everyday Backpack', category: 'Fashion', price: 2199, oldPrice: 3200, rating: 4.7, reviews: 62, badge: '−31%', art: '🎒', tint: 'peach' },, image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=700&q=82'
-  { id: 8, name: 'Non-stick Cookware Set', category: 'Home & Living', price: 3299, oldPrice: 4500, rating: 4.3, reviews: 44, badge: '−27%', art: '🍳', tint: 'mint' },, image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=82'
+  { id: 1, name: 'Wireless Bluetooth Headphones', category: 'Electronics', price: 2499, oldPrice: 3999, rating: 4.7, reviews: 128, badge: '−38%', art: '🎧', tint: 'lavender', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=82' },
+  { id: 2, name: 'Everyday Classic Sneakers', category: 'Fashion', price: 2890, oldPrice: 4200, rating: 4.5, reviews: 86, badge: '−31%', art: '👟', tint: 'peach', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=82' },
+  { id: 3, name: 'Smart Watch Series 8', category: 'Phones & Tablets', price: 3599, oldPrice: 5500, rating: 4.8, reviews: 204, badge: 'HOT DEAL', art: '⌚', tint: 'mint', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=82' },
+  { id: 4, name: 'Minimal Ceramic Table Lamp', category: 'Home & Living', price: 1850, oldPrice: 2500, rating: 4.4, reviews: 53, badge: '−26%', art: '💡', tint: 'yellow', image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=700&q=82' },
+  { id: 5, name: 'Daily Glow Skincare Set', category: 'Beauty', price: 1699, oldPrice: 2200, rating: 4.6, reviews: 97, badge: '−23%', art: '🧴', tint: 'pink', image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=700&q=82' },
+  { id: 6, name: 'Compact Portable Speaker', category: 'Electronics', price: 1999, oldPrice: 2800, rating: 4.5, reviews: 71, badge: '−29%', art: '🔊', tint: 'blue', image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=700&q=82' },
+  { id: 7, name: 'Structured Everyday Backpack', category: 'Fashion', price: 2199, oldPrice: 3200, rating: 4.7, reviews: 62, badge: '−31%', art: '🎒', tint: 'peach', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=700&q=82' },
+  { id: 8, name: 'Non-stick Cookware Set', category: 'Home & Living', price: 3299, oldPrice: 4500, rating: 4.3, reviews: 44, badge: '−27%', art: '🍳', tint: 'mint', image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=700&q=82' },
 ];
 
 const money = value => 'KSh ' + Number(value).toLocaleString('en-KE');
