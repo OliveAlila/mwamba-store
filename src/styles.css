@@ -107,3 +107,9 @@
 .category-illustration img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .25s ease}
 .category-tile:hover .category-illustration img{transform:scale(1.06)}
 @media(max-width:600px){.category-illustration{width:100%;height:88px;border-radius:6px}.category-tile{min-height:150px}.category-illustration img{object-fit:cover}}
+
+
+/* Keep a recognizable category icon behind each photo; if a remote image fails, the tile is never blank. */
+.category-illustration{position:relative;overflow:hidden}
+.category-illustration>svg{position:absolute;z-index:0;width:36px;height:36px;stroke-width:1.7}
+.category-illustration>img{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;object-fit:cover}
