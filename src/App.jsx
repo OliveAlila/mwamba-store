@@ -8,16 +8,16 @@ import {
 } from 'lucide-react';
 
 const categories = [
-  { name: 'Phones & Tablets', icon: Smartphone, color: 'lavender' },
-  { name: 'Fashion', icon: Shirt, color: 'peach' },
-  { name: 'Home & Living', icon: House, color: 'mint' },
-  { name: 'Electronics', icon: Laptop, color: 'blue' },
-  { name: 'Beauty', icon: Sparkles, color: 'pink' },
-  { name: 'Sports & Outdoors', icon: Dumbbell, color: 'yellow' },
-  { name: 'Books & Stationery', icon: BookOpen, color: 'blue' },
-  { name: 'Baby & Kids', icon: Baby, color: 'peach' },
-  { name: 'Automotive', icon: Car, color: 'mint' },
-  { name: 'Watches & Accessories', icon: Watch, color: 'lavender' },
+  { name: 'Phones & Tablets', icon: Smartphone, color: 'lavender', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Fashion', icon: Shirt, color: 'peach', image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Home & Living', icon: House, color: 'mint', image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Electronics', icon: Laptop, color: 'blue', image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Beauty', icon: Sparkles, color: 'pink', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Sports & Outdoors', icon: Dumbbell, color: 'yellow', image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Books & Stationery', icon: BookOpen, color: 'blue', image: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Baby & Kids', icon: Baby, color: 'peach', image: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Automotive', icon: Car, color: 'mint', image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=360&q=80' },
+  { name: 'Watches & Accessories', icon: Watch, color: 'lavender', image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=360&q=80' },
 ];
 
 const initialProducts = [
@@ -127,7 +127,7 @@ function App() {
         </div>
       </section>
 
-      <section className="category-section"><div className="section-heading"><div><span className="eyebrow">FIND YOUR NEXT FAVOURITE</span><h2>Browse by category</h2></div><button className="text-link" onClick={()=>goCategory('All products')}>All categories <ArrowRight size={16}/></button></div><div className="category-grid">{categories.map(({name,icon:Icon,color},i)=><button className="category-tile" key={name} onClick={()=>goCategory(name)}><span className={'category-illustration '+color}><Icon size={27}/></span><b>{name}</b><small>{[48,126,84,72,56,39,61,32,41,68][i]}+ items</small></button>)}</div></section>
+      <section className="category-section"><div className="section-heading"><div><span className="eyebrow">FIND YOUR NEXT FAVOURITE</span><h2>Browse by category</h2></div><button className="text-link" onClick={()=>goCategory('All products')}>All categories <ArrowRight size={16}/></button></div><div className="category-grid">{categories.map(({name,color,image},i)=><button className="category-tile" key={name} onClick={()=>goCategory(name)}><span className={'category-illustration '+color}><img src={image} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display='none';}} /></span><b>{name}</b><small>{[48,126,84,72,56,39,61,32,41,68][i]}+ items</small></button>)}</div></section>
 
       <section className="deal-banner"><div className="deal-mark"><Zap size={24} fill="currentColor"/></div><div className="deal-copy"><span>THE DAILY DROP</span><h2>Little prices. Big energy.</h2><p>Handpicked deals for your everyday.</p></div><div className="deal-countdown"><span>THIS WEEK'S FINDS</span><div><b>01</b><i>:</i><b>24</b><i>:</i><b>36</b></div><small>Hours&nbsp;&nbsp;&nbsp; Mins&nbsp;&nbsp;&nbsp; Secs</small></div><button onClick={()=>{setActiveCategory('All products');setSort('price-low');setShowAll(true);document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}}>Shop the deals <ArrowRight size={17}/></button><div className="deal-decoration">✳</div></section>
 
