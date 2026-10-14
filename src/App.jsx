@@ -87,7 +87,7 @@ function formatApiError(error) {
 }
 
 function Brand() {
-  return <div className="brand-lockup"><span className="brand-mark">m<span>.</span></span><span className="brand-name">mwamba<span>store</span></span></div>;
+  return <span className="brand-lockup"><img className="brand-logo-image" src="/mwamba-store-logo.svg" alt="Mwamba Store" /></span>;
 }
 
 function ProductCard({ product, wished, onWish, onAdd }) {
