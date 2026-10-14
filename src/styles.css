@@ -459,3 +459,10 @@
 .search-box .search-clear{display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:transparent!important;color:#81796d!important;font-size:20px;line-height:1;box-shadow:none}
 .search-box .search-clear:hover{background:#eee8de!important}
 @media(max-width:760px){.search-box .search-clear{display:grid}.search-box>button.search-clear{display:grid}}
+
+/* Use the supplied Mwamba Store wordmark consistently in the header and admin sidebar. */
+.brand-lockup{display:inline-flex;align-items:center;flex-shrink:0;}
+.brand-logo-image{display:block;width:210px;height:auto;max-width:100%;object-fit:contain;}
+.admin-sidebar .brand-logo-image{width:190px;}
+@media(max-width:900px){.brand-logo-image{width:170px;}}
+@media(max-width:640px){.brand-logo-image{width:130px;}}
