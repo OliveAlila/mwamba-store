@@ -37,7 +37,7 @@ app.use(helmet({
   } : false,
   crossOriginEmbedderPolicy: false,
 }));
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '7mb' }));
 app.use(cookieParser());
 
 // Allow explicitly configured frontends to read the public catalogue API.
@@ -154,6 +154,7 @@ app.get('/api/admin/summary', requireAuth, requireAdmin, async (_req, res, next)
 
 if (process.env.NODE_ENV === 'production') {
   const dist = path.resolve(here, '../dist');
+  app.use('/uploads', express.static(path.resolve(here, '../uploads'), { maxAge: '7d', immutable: true }));
   app.use(express.static(dist));
   app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
 }
