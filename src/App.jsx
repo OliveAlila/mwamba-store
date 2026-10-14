@@ -171,7 +171,7 @@ function App() {
   const [publicConfig, setPublicConfig] = useState(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
-  const [productForm, setProductForm] = useState({ name: '', description: '', category_id: '', price: '', compare_at_price: '', stock_quantity: '0', sku: '', image_url: '' });
+  const [productForm, setProductForm] = useState({ name: '', description: '', category_id: '', price: '', compare_at_price: '', stock_quantity: '0', image_url: '' });
   const [editingProductId, setEditingProductId] = useState(null);
   const [productImageBusy, setProductImageBusy] = useState(false);
   const [infoPage, setInfoPage] = useState('');
@@ -529,6 +529,10 @@ function App() {
     event.preventDefault();
     setAdminBusy(true);
     try {
+      if (!String(productForm.image_url || '').trim()) {
+        setNotice('Add a product image using a URL or upload one from your phone/computer.');
+        return;
+      }
       const payload = {
         ...productForm,
         price: Number(productForm.price),
@@ -537,7 +541,7 @@ function App() {
         category_id: productForm.category_id === '' ? null : Number(productForm.category_id),
       };
       await api(editingProductId ? '/api/products/' + editingProductId : '/api/products', { method: editingProductId ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
-      setProductForm({ name: '', description: '', category_id: '', price: '', compare_at_price: '', stock_quantity: '0', sku: '', image_url: '' });
+      setProductForm({ name: '', description: '', category_id: '', price: '', compare_at_price: '', stock_quantity: '0', image_url: '' });
       setEditingProductId(null);
       await loadAdminData('Products');
       await loadStorefront();
@@ -549,7 +553,7 @@ function App() {
 
   const editProduct = product => {
     setEditingProductId(product.id);
-    setProductForm({ name: product.name || '', description: product.description || '', category_id: product.category_id ? String(product.category_id) : '', price: String(product.price ?? ''), compare_at_price: product.compare_at_price == null ? '' : String(product.compare_at_price), stock_quantity: String(product.stock_quantity ?? 0), sku: product.sku || '', image_url: product.image_url || '' });
+    setProductForm({ name: product.name || '', description: product.description || '', category_id: product.category_id ? String(product.category_id) : '', price: String(product.price ?? ''), compare_at_price: product.compare_at_price == null ? '' : String(product.compare_at_price), stock_quantity: String(product.stock_quantity ?? 0), image_url: product.image_url || '' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const archiveProduct = async product => {
@@ -636,7 +640,7 @@ function App() {
       {adminTab==='Overview' ? <>
         <div className="admin-welcome"><div><p>YOUR STORE AT A GLANCE</p><h2>Good day, {user.name} 👋</h2><span>Here’s what’s happening with Mwamba Store.</span></div><button className="dark-btn" onClick={()=>setAdminTab('Products')}><Plus size={17}/> Manage products</button></div>
         <div className="stats-grid">{[['Total revenue',money(adminSummary?.revenue || 0),'Paid orders this month','This month'],['Orders',String(adminSummary?.orders ?? 0),'All orders','In the store'],['Products',String(adminSummary?.products ?? 0),String(adminSummary?.low_stock ?? 0)+' low stock','In your catalogue'],['Customers',String(adminSummary?.customers ?? 0),'Active accounts','Registered']].map(([label,value,trend,sub])=><div className="stat-card" key={label}><span>{label}</span><h3>{value}</h3><div><b>{trend}</b><small>{sub}</small></div></div>)}</div>
-        <section className="admin-panel"><div className="panel-heading"><div><h3>Inventory watch</h3><p>Products that need attention</p></div><Boxes size={19}/></div>{adminProducts.filter(p=>Number(p.stock_quantity)<=5 && p.status==='active').slice(0,8).map(p=><div className="inventory-row" key={p.id}><span className="mini-product">▦</span><div><b>{p.name}</b><small>Stock level</small></div><span className="stock-low">{p.stock_quantity} left</span></div>)}{!adminProducts.length&&<p>No product inventory loaded yet. Use Products to add catalogue items.</p>}</section>
+        <section className="admin-panel"><div className="panel-heading"><div><h3>Inventory watch</h3><p>Products that need attention</p></div><Boxes size={19}/></div>{adminProducts.filter(p=>Number(p.stock_quantity)<=5 && p.status==='active').slice(0,8).map(p=><div className="inventory-row" key={p.id}><span className="mini-product">▦</span><div><b>{p.name}</b><small>{'Product ID: MWB-P-' + String(p.id).padStart(6,'0')}</small><small>Stock level</small></div><span className="stock-low">{p.stock_quantity} left</span></div>)}{!adminProducts.length&&<p>No product inventory loaded yet. Use Products to add catalogue items.</p>}</section>
       </> : adminTab==='Products' ? <div className="admin-panels">
         <section className="admin-panel"><div className="panel-heading"><div><h3>{editingProductId ? 'Edit product' : 'Add a product'}</h3><p>Products become visible to customers when saved.</p></div></div>
           <form className="admin-form" onSubmit={createProduct}>
@@ -645,15 +649,14 @@ function App() {
             <label>Price (KES)<input required type="number" min="1" step="0.01" value={productForm.price} onChange={e=>setProductForm({...productForm,price:e.target.value})}/></label>
             <label>Compare-at price (KES)<input type="number" min="0.01" step="0.01" value={productForm.compare_at_price} onChange={e=>setProductForm({...productForm,compare_at_price:e.target.value})}/></label>
             <label>Stock quantity<input type="number" min="0" step="1" value={productForm.stock_quantity} onChange={e=>setProductForm({...productForm,stock_quantity:e.target.value})}/></label>
-            <label>SKU (optional)<input maxLength="100" value={productForm.sku} onChange={e=>setProductForm({...productForm,sku:e.target.value})}/></label>
-            <label className="wide-field">Image URL (HTTPS)<input type="url" placeholder="https://…" value={productForm.image_url} onChange={e=>setProductForm({...productForm,image_url:e.target.value})}/></label>
+            <label className="wide-field">Image URL (optional if you upload a photo)<input type="text" inputMode="url" autoComplete="url" placeholder="https://… (or upload a photo below)" value={productForm.image_url} onChange={e=>setProductForm({...productForm,image_url:e.target.value})}/><small>Provide a secure HTTPS image URL, or upload an image from your phone/computer. At least one is required.</small></label>
             <label className="wide-field upload-field">Upload from phone or computer<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={uploadProductImage} disabled={productImageBusy}/><small>{productImageBusy ? 'Uploading image…' : 'JPG, PNG, WEBP or GIF · maximum 5 MB'}</small></label>
             {productForm.image_url && <div className="wide-field product-image-preview"><img src={productForm.image_url} alt="Product preview" onError={e=>{e.currentTarget.hidden=true;}}/><span>Image preview</span></div>}
             <label className="wide-field">Description<textarea rows="3" maxLength="10000" value={productForm.description} onChange={e=>setProductForm({...productForm,description:e.target.value})}/></label>
-            <div className="form-actions"><button className="dark-btn" disabled={adminBusy || productImageBusy}>{editingProductId ? <Pencil size={16}/> : <Plus size={16}/>} {adminBusy ? 'Saving…' : editingProductId ? 'Update product' : 'Save product'}</button>{editingProductId && <button type="button" className="secondary-btn" onClick={()=>{setEditingProductId(null);setProductForm({name:'',description:'',category_id:'',price:'',compare_at_price:'',stock_quantity:'0',sku:'',image_url:''});}}>Cancel edit</button>}</div>
+            <div className="form-actions"><button className="dark-btn" disabled={adminBusy || productImageBusy}>{editingProductId ? <Pencil size={16}/> : <Plus size={16}/>} {adminBusy ? 'Saving…' : editingProductId ? 'Update product' : 'Save product'}</button>{editingProductId && <button type="button" className="secondary-btn" onClick={()=>{setEditingProductId(null);setProductForm({name:'',description:'',category_id:'',price:'',compare_at_price:'',stock_quantity:'0',image_url:''});}}>Cancel edit</button>}</div>
           </form>
         </section>
-        <section className="admin-panel"><div className="panel-heading"><div><h3>Catalogue</h3><p>{adminProducts.length} products</p></div></div><div className="admin-table-wrap"><table><thead><tr><th>PRODUCT</th><th>PRICE</th><th>STOCK</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody>{adminProducts.map(p=><tr key={p.id}><td>{p.name}</td><td>{money(p.price)}</td><td>{p.stock_quantity}</td><td>{p.status}</td><td><div className="table-actions"><button className="text-link" onClick={()=>editProduct(p)}><Pencil size={14}/> Edit</button>{p.status !== 'archived' && <button className="text-link danger-link" disabled={adminBusy} onClick={()=>archiveProduct(p)}><Trash2 size={14}/> Archive</button>}</div></td></tr>)}</tbody></table></div></section>
+        <section className="admin-panel"><div className="panel-heading"><div><h3>Catalogue</h3><p>{adminProducts.length} products</p></div></div><div className="admin-table-wrap"><table><thead><tr><th>PRODUCT ID</th><th>PRODUCT</th><th>PRICE</th><th>STOCK</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody>{adminProducts.map(p=><tr key={p.id}><td><b>{'MWB-P-' + String(p.id).padStart(6,'0')}</b></td><td>{p.name}</td><td>{money(p.price)}</td><td>{p.stock_quantity}</td><td>{p.status}</td><td><div className="table-actions"><button className="text-link" onClick={()=>editProduct(p)}><Pencil size={14}/> Edit</button>{p.status !== 'archived' && <button className="text-link danger-link" disabled={adminBusy} onClick={()=>archiveProduct(p)}><Trash2 size={14}/> Archive</button>}</div></td></tr>)}</tbody></table></div></section>
       </div> : adminTab==='Categories' ? <div className="admin-panels">
         <section className="admin-panel"><div className="panel-heading"><div><h3>Add a category</h3><p>New active categories appear in the storefront catalogue.</p></div></div><form className="admin-form" onSubmit={createCategory}>
           <label>Category name<input required minLength="2" maxLength="100" value={categoryName} onChange={e=>setCategoryName(e.target.value)}/></label>
