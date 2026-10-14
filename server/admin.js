@@ -103,20 +103,50 @@ router.post('/promotions', async (req, res, next) => {
 
 router.patch('/promotions/:id', async (req, res, next) => {
   const id = Number(req.params.id);
-  const isActive = req.body?.is_active;
   if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: 'Invalid promotion ID.' });
-  if (![true, false, 0, 1].includes(isActive)) return res.status(400).json({ error: 'is_active must be true or false.' });
+  const hasActiveOnly = Object.keys(req.body || {}).length === 1 && Object.hasOwn(req.body, 'is_active');
   try {
-    const result = await query('UPDATE promotions SET is_active = ? WHERE id = ?', [isActive ? 1 : 0, id]);
-    if (!result.affectedRows) {
-      const rows = await query('SELECT id FROM promotions WHERE id = ? LIMIT 1', [id]);
-      if (!rows.length) return res.status(404).json({ error: 'Promotion not found.' });
+    if (hasActiveOnly) {
+      const isActive = req.body.is_active;
+      if (![true, false, 0, 1].includes(isActive)) return res.status(400).json({ error: 'is_active must be true or false.' });
+      const result = await query('UPDATE promotions SET is_active = ? WHERE id = ?', [isActive ? 1 : 0, id]);
+      if (!result.affectedRows) {
+        const rows = await query('SELECT id FROM promotions WHERE id = ? LIMIT 1', [id]);
+        if (!rows.length) return res.status(404).json({ error: 'Promotion not found.' });
+      }
+    } else {
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+      const discountType = req.body?.discount_type;
+      const discountValue = Number(req.body?.discount_value);
+      const rawCode = typeof req.body?.code === 'string' ? req.body.code.trim().toUpperCase() : '';
+      const code = rawCode || null;
+      const startsAt = req.body?.starts_at || null;
+      const endsAt = req.body?.ends_at || null;
+      if (name.length < 2 || name.length > 160) return res.status(400).json({ error: 'Promotion name must be between 2 and 160 characters.' });
+      if (!['percentage', 'fixed'].includes(discountType) || !Number.isFinite(discountValue) || discountValue <= 0 || (discountType === 'percentage' && discountValue > 100)) return res.status(400).json({ error: 'Enter a valid percentage (up to 100) or fixed discount amount.' });
+      if (code && !/^[A-Z0-9_-]{3,60}$/.test(code)) return res.status(400).json({ error: 'Promotion code must be 3–60 letters, numbers, hyphens or underscores.' });
+      if (startsAt && Number.isNaN(Date.parse(startsAt))) return res.status(400).json({ error: 'Start date is invalid.' });
+      if (endsAt && Number.isNaN(Date.parse(endsAt))) return res.status(400).json({ error: 'End date is invalid.' });
+      if (startsAt && endsAt && Date.parse(endsAt) < Date.parse(startsAt)) return res.status(400).json({ error: 'End date must be after the start date.' });
+      const existing = await query('SELECT id FROM promotions WHERE id = ? LIMIT 1', [id]);
+      if (!existing.length) return res.status(404).json({ error: 'Promotion not found.' });
+      await query('UPDATE promotions SET name = ?, code = ?, discount_type = ?, discount_value = ?, starts_at = ?, ends_at = ? WHERE id = ?', [name, code, discountType, discountValue, startsAt, endsAt, id]);
     }
-    const rows = await query(
-      'SELECT id, name, code, discount_type, discount_value, starts_at, ends_at, is_active, created_at FROM promotions WHERE id = ? LIMIT 1',
-      [id]
-    );
+    const rows = await query('SELECT id, name, code, discount_type, discount_value, starts_at, ends_at, is_active, created_at FROM promotions WHERE id = ? LIMIT 1', [id]);
     return res.json({ promotion: rows[0] });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'That promotion code is already in use.' });
+    return next(error);
+  }
+});
+
+router.delete('/promotions/:id', async (req, res, next) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: 'Invalid promotion ID.' });
+  try {
+    const result = await query('DELETE FROM promotions WHERE id = ?', [id]);
+    if (!result.affectedRows) return res.status(404).json({ error: 'Promotion not found.' });
+    return res.json({ ok: true, deleted_id: id });
   } catch (error) {
     return next(error);
   }
