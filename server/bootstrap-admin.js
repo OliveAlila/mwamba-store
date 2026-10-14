@@ -13,6 +13,38 @@ function tokenMatches(provided, expected) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+// Temporary password recovery for an existing administrator. Requires the same
+// strong hosting-only bootstrap token and is disabled when that token is removed.
+router.post('/reset-password', async (req, res, next) => {
+  const expectedToken = process.env.ADMIN_BOOTSTRAP_TOKEN;
+  if (!expectedToken || expectedToken.length < 32) {
+    return res.status(404).json({ error: 'Not found.' });
+  }
+  if (!tokenMatches(req.get('x-admin-bootstrap-token'), expectedToken)) {
+    return res.status(401).json({ error: 'Invalid recovery token.' });
+  }
+
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  if (!emailPattern.test(email) || email.length > 190 || password.length < 14 || password.length > 72) {
+    return res.status(400).json({ error: 'Provide a valid admin email and a new password of 14–72 characters.' });
+  }
+
+  try {
+    const passwordHash = await bcrypt.hash(password, 12);
+    const [result] = await getPool().execute(
+      "UPDATE users SET password_hash = ? WHERE email = ? AND role = 'admin' AND status = 'active'",
+      [passwordHash, email]
+    );
+    if (result.affectedRows !== 1) {
+      return res.status(404).json({ error: 'No active administrator matches that email.' });
+    }
+    return res.json({ ok: true, message: 'Administrator password reset. Remove ADMIN_BOOTSTRAP_TOKEN from hosting now, then sign in with the new password.' });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 // Temporary, token-protected first-admin bootstrap. It is disabled unless
 // ADMIN_BOOTSTRAP_TOKEN is configured in the hosting environment.
 router.post('/', async (req, res, next) => {
