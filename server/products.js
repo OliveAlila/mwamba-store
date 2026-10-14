@@ -86,6 +86,9 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
         !Number.isInteger(stock) || stock < 0 || stock > 100000000) {
       return res.status(400).json({ error: 'Product name, positive price and valid non-negative stock are required.' });
     }
+    if (!cleanImage || cleanImage === '') {
+      return res.status(400).json({ error: 'Add an image URL or upload a product photo before saving.' });
+    }
     if (compareAt !== null && (!Number.isFinite(compareAt) || compareAt < numericPrice)) {
       return res.status(400).json({ error: 'Compare-at price must be blank or at least the selling price.' });
     }
@@ -102,8 +105,8 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
     if (cleanSku != null && (typeof cleanSku !== 'string' || cleanSku.length > 100)) {
       return res.status(400).json({ error: 'SKU must be 100 characters or fewer.' });
     }
-    if (cleanImage != null && cleanImage !== '' && (typeof cleanImage !== 'string' || !/^https:\/\//i.test(cleanImage) || cleanImage.length > 2048)) {
-      return res.status(400).json({ error: 'Image URL must be a valid HTTPS URL.' });
+    if (cleanImage != null && cleanImage !== '' && (typeof cleanImage !== 'string' || (!( /^https:\/\//i.test(cleanImage)) && !/^\/uploads\/[a-f0-9-]+\.(?:jpg|png|webp|gif)$/i.test(cleanImage)) || cleanImage.length > 2048)) {
+      return res.status(400).json({ error: 'Use a valid HTTPS image URL or upload an image from your device.' });
     }
     const slug = cleanName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 160) + '-' + Date.now().toString(36);
     const result = await query(
@@ -153,8 +156,8 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
       if (key === 'sku' && value != null && (typeof value !== 'string' || value.trim().length > 100)) {
         return res.status(400).json({ error: 'SKU must be 100 characters or fewer.' });
       }
-      if (key === 'image_url' && value != null && value !== '' && (typeof value !== 'string' || !/^https:\/\//i.test(value) || value.length > 2048)) {
-        return res.status(400).json({ error: 'Image URL must be a valid HTTPS URL.' });
+      if (key === 'image_url' && value != null && value !== '' && (typeof value !== 'string' || (!( /^https:\/\//i.test(value)) && !/^\/uploads\/[a-f0-9-]+\.(?:jpg|png|webp|gif)$/i.test(value)) || value.length > 2048)) {
+        return res.status(400).json({ error: 'Use a valid HTTPS image URL or uploaded image path.' });
       }
       if (key === 'category_id' && value != null && value !== '' && (!Number.isSafeInteger(Number(value)) || Number(value) < 1)) {
         return res.status(400).json({ error: 'Choose a valid product category.' });
