@@ -168,6 +168,7 @@ function App() {
   const [adminCustomers, setAdminCustomers] = useState([]);
   const [adminPromotions, setAdminPromotions] = useState([]);
   const [promotionForm, setPromotionForm] = useState({ name: '', code: '', discount_type: 'percentage', discount_value: '10', starts_at: '', ends_at: '' });
+  const [editingPromotionId, setEditingPromotionId] = useState(null);
   const [publicConfig, setPublicConfig] = useState(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
@@ -266,6 +267,15 @@ function App() {
     const timer = window.setInterval(() => setHeroSlide(current => (current + 1) % heroSlides.length), 5500);
     return () => window.clearInterval(timer);
   }, []);
+
+  const refreshDealTimer = async () => {
+    try {
+      const result = await api('/api/deals/timer');
+      setDealEndsAt(result.ends_at ? new Date(result.ends_at).getTime() : null);
+    } catch {
+      setDealEndsAt(null);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -588,6 +598,31 @@ function App() {
     }
   };
 
+  const promotionDateForApi = value => value ? new Date(value).toISOString().slice(0, 19).replace('T', ' ') : null;
+  const resetPromotionForm = () => {
+    setEditingPromotionId(null);
+    setPromotionForm({ name: '', code: '', discount_type: 'percentage', discount_value: '10', starts_at: '', ends_at: '' });
+  };
+  const promotionDateForInput = value => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return '';
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+  const editPromotion = promotion => {
+    setEditingPromotionId(promotion.id);
+    setPromotionForm({
+      name: promotion.name || '',
+      code: promotion.code || '',
+      discount_type: promotion.discount_type || 'percentage',
+      discount_value: String(promotion.discount_value ?? '10'),
+      starts_at: promotionDateForInput(promotion.starts_at),
+      ends_at: promotionDateForInput(promotion.ends_at),
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const createPromotion = async event => {
     event.preventDefault();
     setAdminBusy(true);
@@ -595,14 +630,19 @@ function App() {
       const payload = {
         ...promotionForm,
         discount_value: Number(promotionForm.discount_value),
-        starts_at: promotionForm.starts_at || null,
-        ends_at: promotionForm.ends_at || null,
+        starts_at: promotionDateForApi(promotionForm.starts_at),
+        ends_at: promotionDateForApi(promotionForm.ends_at),
       };
-      await api('/api/admin/promotions', { method: 'POST', body: JSON.stringify(payload) });
-      setPromotionForm({ name: '', code: '', discount_type: 'percentage', discount_value: '10', starts_at: '', ends_at: '' });
+      await api(editingPromotionId ? '/api/admin/promotions/' + editingPromotionId : '/api/admin/promotions', {
+        method: editingPromotionId ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload),
+      });
+      const wasEditing = Boolean(editingPromotionId);
+      resetPromotionForm();
       const result = await api('/api/admin/promotions');
       setAdminPromotions(result.promotions || []);
-      setNotice('Promotion created as inactive. Activate it when ready.');
+      await refreshDealTimer();
+      setNotice(wasEditing ? 'Promotion updated.' : 'Promotion created as inactive. Activate it when ready.');
     } catch (error) {
       setNotice(formatApiError(error));
     } finally {
@@ -619,7 +659,25 @@ function App() {
       });
       const result = await api('/api/admin/promotions');
       setAdminPromotions(result.promotions || []);
+      await refreshDealTimer();
       setNotice(promotion.is_active ? 'Promotion deactivated.' : 'Promotion activated.');
+    } catch (error) {
+      setNotice(formatApiError(error));
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const deletePromotion = async promotion => {
+    if (!window.confirm(`Delete the promotion “${promotion.name}”? This cannot be undone.`)) return;
+    setAdminBusy(true);
+    try {
+      await api('/api/admin/promotions/' + promotion.id, { method: 'DELETE' });
+      const result = await api('/api/admin/promotions');
+      setAdminPromotions(result.promotions || []);
+      await refreshDealTimer();
+      if (editingPromotionId === promotion.id) resetPromotionForm();
+      setNotice('Promotion deleted.');
     } catch (error) {
       setNotice(formatApiError(error));
     } finally {
@@ -675,7 +733,7 @@ function App() {
           {adminCustomers.map(customer=><tr key={customer.id}><td><b>{customer.name}</b><small>{customer.email}</small></td><td>{customer.status}</td><td>{customer.order_count}</td><td>{money(customer.paid_total)}</td><td>{new Date(customer.created_at).toLocaleDateString()}</td></tr>)}
         </tbody></table>{!adminCustomers.length&&<p>No customer accounts yet.</p>}</div>
       </section> : adminTab==='Promotions' ? <div className="admin-panels">
-        <section className="admin-panel"><div className="panel-heading"><div><h3>Create a promotion</h3><p>New promotions are created inactive and must be activated intentionally.</p></div></div>
+        <section className="admin-panel"><div className="panel-heading"><div><h3>{editingPromotionId ? 'Edit promotion' : 'Create a promotion'}</h3><p>{editingPromotionId ? 'Update the promotion details and schedule.' : 'New promotions are created inactive and must be activated intentionally.'}</p></div></div>
           <form className="admin-form" onSubmit={createPromotion}>
             <label>Promotion name<input required minLength="2" maxLength="160" value={promotionForm.name} onChange={e=>setPromotionForm({...promotionForm,name:e.target.value})}/></label>
             <label>Code (optional)<input maxLength="60" placeholder="WELCOME10" value={promotionForm.code} onChange={e=>setPromotionForm({...promotionForm,code:e.target.value.toUpperCase()})}/></label>
@@ -683,12 +741,12 @@ function App() {
             <label>Discount value<input required type="number" min="0.01" max={promotionForm.discount_type==='percentage'?'100':undefined} step="0.01" value={promotionForm.discount_value} onChange={e=>setPromotionForm({...promotionForm,discount_value:e.target.value})}/></label>
             <label>Starts at (optional)<input type="datetime-local" value={promotionForm.starts_at} onChange={e=>setPromotionForm({...promotionForm,starts_at:e.target.value})}/></label>
             <label>Ends at (optional)<input type="datetime-local" value={promotionForm.ends_at} onChange={e=>setPromotionForm({...promotionForm,ends_at:e.target.value})}/></label>
-            <button className="dark-btn" disabled={adminBusy}><Plus size={16}/>{adminBusy?'Saving…':'Create promotion'}</button>
+            <div className="form-actions"><button className="dark-btn" disabled={adminBusy}>{editingPromotionId ? <Pencil size={16}/> : <Plus size={16}/>} {adminBusy ? 'Saving…' : editingPromotionId ? 'Update promotion' : 'Create promotion'}</button>{editingPromotionId && <button type="button" className="secondary-btn" disabled={adminBusy} onClick={resetPromotionForm}>Cancel edit</button>}</div>
           </form>
         </section>
         <section className="admin-panel"><div className="panel-heading"><div><h3>Promotions</h3><p>{adminPromotions.length} configured</p></div></div>
           <div className="admin-table-wrap"><table><thead><tr><th>NAME / CODE</th><th>DISCOUNT</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>
-            {adminPromotions.map(p=><tr key={p.id}><td><b>{p.name}</b><small>{p.code || 'No code'}</small></td><td>{p.discount_type==='percentage'?p.discount_value+'%':money(p.discount_value)}</td><td>{p.is_active?'Active':'Inactive'}</td><td><button className="text-link" disabled={adminBusy} onClick={()=>togglePromotion(p)}>{p.is_active?'Deactivate':'Activate'}</button></td></tr>)}
+            {adminPromotions.map(p=><tr key={p.id}><td><b>{p.name}</b><small>{p.code || 'No code'}</small></td><td>{p.discount_type==='percentage'?p.discount_value+'%':money(p.discount_value)}</td><td>{p.is_active?'Active':'Inactive'}</td><td><div className="table-actions"><button className="text-link" disabled={adminBusy} onClick={()=>editPromotion(p)}><Pencil size={14}/> Edit</button><button className="text-link" disabled={adminBusy} onClick={()=>togglePromotion(p)}>{p.is_active?'Deactivate':'Activate'}</button><button className="text-link danger-link" disabled={adminBusy} onClick={()=>deletePromotion(p)}><Trash2 size={14}/> Delete</button></div></td></tr>)}
           </tbody></table>{!adminPromotions.length&&<p>No promotions created yet.</p>}</div>
         </section>
       </div> : <section className="admin-panel">
@@ -706,9 +764,9 @@ function App() {
       <button className="brand-button" onClick={()=>{setActiveCategory('All products');setQuery('');window.scrollTo({top:0,behavior:'smooth'});}}><Brand /></button>
       <form className="search-box" role="search" onSubmit={e=>{e.preventDefault();setShowAll(true);setActiveCategory('All products');document.getElementById('products')?.scrollIntoView({behavior:'smooth',block:'start'});}}><Search size={19}/><input type="search" aria-label="Search products" value={query} onChange={e=>{setQuery(e.target.value);setShowAll(true);setActiveCategory('All products');}} placeholder="Search products, brands and more..." /><kbd>↵</kbd>{query && <button type="button" className="search-clear" aria-label="Clear search" onClick={()=>{setQuery('');setShowAll(true);}}>×</button>}<button type="submit">Search</button></form>
       <div className="header-actions">
-        <button className="header-action" onClick={()=>setDrawer('account')}><UserRound size={21}/><span><small>Hello, welcome</small><b>My account</b></span></button>
-        <button className="header-action wishlist-action" onClick={()=>setDrawer('wishlist')}><span className="action-icon"><Heart size={21}/>{wishlist.length>0&&<i>{wishlist.length}</i>}</span><span><small>Your saved</small><b>Wishlist</b></span></button>
-        <button className="header-action cart-action" onClick={()=>setDrawer('cart')}><span className="action-icon"><ShoppingCart size={22}/><i>{cartCount}</i></span><span><small>Your bag</small><b>Cart</b></span></button>
+        <button className="header-action" aria-label="My account" onClick={()=>setDrawer('account')}><UserRound size={21}/><span><b>My account</b></span></button>
+        <button className="header-action wishlist-action" aria-label="Wishlist" onClick={()=>setDrawer('wishlist')}><span className="action-icon"><Heart size={21}/>{wishlist.length>0&&<i>{wishlist.length}</i>}</span><span><b>Wishlist</b></span></button>
+        <button className="header-action cart-action" aria-label="Cart" onClick={()=>setDrawer('cart')}><span className="action-icon"><ShoppingCart size={22}/><i>{cartCount}</i></span><span><b>Cart</b></span></button>
       </div>
     </header>
     {mobileMenu && <div id="category-dropdown" className="header-category-dropdown">
