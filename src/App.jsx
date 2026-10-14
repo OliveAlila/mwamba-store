@@ -347,7 +347,13 @@ function App() {
   }, [drawer, adminTab, user]);
 
   const visibleProducts = useMemo(() => {
-    let result = products.filter(p => (activeCategory === 'All products' || p.category === activeCategory) && (p.name.toLowerCase().includes(query.toLowerCase()) || p.category.toLowerCase().includes(query.toLowerCase())));
+    const normalize = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const searchTerm = normalize(query);
+    let result = products.filter(p => {
+      const categoryMatches = activeCategory === 'All products' || p.category === activeCategory;
+      const searchableText = [p.name, p.category, p.description, p.brand, p.sku].map(normalize).join(' ');
+      return categoryMatches && (!searchTerm || searchableText.includes(searchTerm));
+    });
     if (sort === 'price-low') result = [...result].sort((a,b) => a.price-b.price);
     if (sort === 'price-high') result = [...result].sort((a,b) => b.price-a.price);
     if (sort === 'rating') result = [...result].sort((a,b) => b.rating-a.rating);
@@ -695,7 +701,7 @@ function App() {
     <header className="main-header">
       <button className="mobile-menu icon-btn" aria-label={mobileMenu ? "Close categories menu" : "Open categories menu"} aria-expanded={mobileMenu} aria-controls="category-dropdown" onClick={()=>setMobileMenu(!mobileMenu)}><Menu size={22}/></button>
       <button className="brand-button" onClick={()=>{setActiveCategory('All products');setQuery('');window.scrollTo({top:0,behavior:'smooth'});}}><Brand /></button>
-      <div className="search-box"><Search size={19}/><input value={query} onChange={e=>{setQuery(e.target.value);setShowAll(true);}} placeholder="Search products, brands and more..." /><kbd>↵</kbd><button onClick={()=>document.getElementById('products')?.scrollIntoView({behavior:'smooth'})}>Search</button></div>
+      <form className="search-box" role="search" onSubmit={e=>{e.preventDefault();setShowAll(true);setActiveCategory('All products');document.getElementById('products')?.scrollIntoView({behavior:'smooth',block:'start'});}}><Search size={19}/><input type="search" aria-label="Search products" value={query} onChange={e=>{setQuery(e.target.value);setShowAll(true);}} placeholder="Search products, brands and more..." /><kbd>↵</kbd>{query && <button type="button" className="search-clear" aria-label="Clear search" onClick={()=>{setQuery('');setShowAll(true);}}>×</button>}<button type="submit">Search</button></form>
       <div className="header-actions">
         <button className="header-action" onClick={()=>setDrawer('account')}><UserRound size={21}/><span><small>Hello, welcome</small><b>My account</b></span></button>
         <button className="header-action wishlist-action" onClick={()=>setDrawer('wishlist')}><span className="action-icon"><Heart size={21}/>{wishlist.length>0&&<i>{wishlist.length}</i>}</span><span><small>Your saved</small><b>Wishlist</b></span></button>
