@@ -1,8 +1,30 @@
 import { Router } from 'express';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { query } from './db.js';
 import { requireAdmin, requireAuth } from './security.js';
 
 const router = Router();
+const here = path.dirname(fileURLToPath(import.meta.url));
+const uploadDir = path.resolve(here, '../uploads');
+
+router.post('/upload-image', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const image = typeof req.body?.image === 'string' ? req.body.image : '';
+    const match = image.match(/^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$/);
+    if (!match) return res.status(400).json({ error: 'Upload a JPG, PNG, WEBP or GIF image.' });
+    const mime = match[1];
+    const buffer = Buffer.from(match[2], 'base64');
+    if (!buffer.length || buffer.length > 5 * 1024 * 1024) return res.status(413).json({ error: 'Image must be smaller than 5 MB.' });
+    const extension = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[mime];
+    await mkdir(uploadDir, { recursive: true });
+    const filename = randomUUID() + '.' + extension;
+    await writeFile(path.join(uploadDir, filename), buffer, { flag: 'wx' });
+    return res.status(201).json({ url: '/uploads/' + filename });
+  } catch (error) { return next(error); }
+});
 
 router.get('/', async (req, res, next) => {
   try {
