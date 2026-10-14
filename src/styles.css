@@ -399,3 +399,59 @@
  .info-modal{padding:24px 20px}
 }
 @media(max-width:380px){.stats-grid{grid-template-columns:minmax(0,1fr)}.admin-topbar h1{font-size:25px}}
+
+
+/* Plain, compact category dropdown matching the storefront typography. */
+.header-category-dropdown{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:0;
+  padding:12px 0;
+  width:min(260px,calc(100vw - 28px));
+  max-height:min(72vh,560px);
+  overflow-y:auto;
+  background:#f8f7f4;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+}
+.header-category-dropdown .dropdown-category{
+  appearance:none;
+  -webkit-appearance:none;
+  display:flex;
+  align-items:center;
+  width:100%;
+  min-height:28px;
+  gap:8px;
+  padding:5px 14px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--ink);
+  font:400 13px/1.4 'DM Sans',sans-serif;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:none;
+  outline:none;
+}
+.header-category-dropdown .dropdown-category span{flex:1;min-width:0}
+.header-category-dropdown .dropdown-category svg{flex:0 0 15px;width:15px;height:15px;color:inherit}
+.header-category-dropdown .dropdown-category:hover,
+.header-category-dropdown .dropdown-category:focus,
+.header-category-dropdown .dropdown-category:focus-visible,
+.header-category-dropdown .dropdown-category.selected{
+  background:transparent;
+  color:var(--ink);
+  outline:none;
+  box-shadow:none;
+}
+.header-category-dropdown .all-categories-link{
+  margin:0 0 4px;
+  padding:4px 14px 7px;
+  border:0;
+  border-radius:0;
+  color:var(--ink);
+  font-weight:700;
+  font-size:13px;
+}
