@@ -74,9 +74,12 @@ async function main() {
 try {
   await main();
 } catch (error) {
-  console.error('DIAGNOSTIC FAILED:', error.code === 'DB_CONFIG_MISSING'
+  // Show safe connection/configuration diagnostics, never the entered password or hash.
+  const code = typeof error?.code === 'string' ? error.code : 'NO_ERROR_CODE';
+  const message = typeof error?.message === 'string' && error.message.trim()
     ? error.message
-    : error.message || 'Could not complete the check.');
+    : String(error);
+  console.error(`DIAGNOSTIC FAILED [${code}]: ${message || 'Unknown error'}`);
   process.exitCode = 1;
 } finally {
   try {
