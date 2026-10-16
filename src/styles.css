@@ -468,3 +468,40 @@
 @media(max-width:640px){.brand-logo-image{width:130px;}}
 
 .product-card-clickable{cursor:pointer}.product-detail-content{padding:18px 0 100px}.product-detail-image{height:300px;border-radius:10px;background:#f0edf5;display:grid;place-items:center;overflow:hidden;margin-bottom:22px}.product-detail-image img{width:100%;height:100%;object-fit:contain}.product-detail-content h2{font-size:24px;line-height:1.25;margin:7px 0 12px}.product-detail-price{display:flex;align-items:center;gap:12px;font-size:22px;margin:12px 0}.product-detail-price del{font-size:15px;color:#8b877e}.product-description{font-size:14px;line-height:1.7;color:#706b62}.product-detail-actions{display:grid;gap:10px;margin-top:22px}.drawer-item-art img{width:100%;height:100%;object-fit:contain;display:block}.store-bottom-nav{position:fixed;z-index:1201;bottom:0;left:0;right:0;display:flex;justify-content:space-around;align-items:center;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:rgba(255,255,255,.98);border-top:1px solid #e9e5dd;box-shadow:0 -4px 18px rgba(30,25,18,.06)}.store-bottom-nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:64px;padding:3px 12px;border:0;background:transparent;color:#39352e;font-size:10px}.store-bottom-nav button i{position:absolute;top:-2px;right:7px;min-width:16px;height:16px;border-radius:50%;background:#b58b5b;color:#fff;font-style:normal;font-size:10px;display:grid;place-items:center}.drawer,.drawer-backdrop{z-index:1100}.drawer-total{padding-bottom:76px}.checkout-content{padding-bottom:80px}
+
+
+/* Jumia-inspired mobile product detail experience */
+.product-brand{font-size:12px;color:#4776a8;margin:5px 0 7px;font-weight:600}
+.rating{display:flex;align-items:center;gap:5px}.rating-stars{display:inline-flex;align-items:center;gap:1px;color:#f0a51b}.rating b{font-size:12px}.rating span:last-child{font-size:12px;color:var(--muted)}
+.product-detail-page{position:fixed;inset:0;z-index:1500;background:#fff;overflow-y:auto;padding-bottom:calc(76px + env(safe-area-inset-bottom));}
+.product-detail-topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border-bottom:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.detail-back,.detail-cart{display:grid;place-items:center;flex:0 0 34px;width:34px;height:42px;border:0;background:transparent;color:#242424;padding:0}
+.detail-search{display:flex;align-items:center;gap:10px;flex:1;min-width:0;height:48px;border-radius:28px;background:#f1f1f1;padding:0 14px}
+.detail-search input{min-width:0;width:100%;border:0;outline:0;background:transparent;font-size:15px}
+.detail-cart{position:relative}.detail-cart i{position:absolute;right:-3px;top:0;border-radius:50%;background:#c58d4e;color:#fff;font-size:10px;font-style:normal;min-width:16px;height:16px;display:grid;place-items:center}
+.product-detail-page .product-detail-content{padding:0 0 20px}
+.product-detail-page .product-detail-image{height:min(72vw,430px);min-height:260px;max-height:430px;border-radius:0;background:#f6f5f3;margin:0 0 18px;position:relative}
+.product-detail-page .product-detail-image img{object-fit:contain}
+.detail-share{position:absolute;right:14px;bottom:14px;width:42px;height:42px;border:0;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 2px 12px #0002}
+.detail-image-prev,.detail-image-next{position:absolute;top:45%;border:0;background:#ffffffd9;width:34px;height:40px;display:grid;place-items:center}
+.detail-image-prev{left:8px}.detail-image-next{right:8px}
+.detail-image-dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px}
+.detail-image-dots button{width:7px;height:7px;border:0;border-radius:50%;background:#aaa;padding:0}.detail-image-dots button.active{background:#c58d4e;width:18px;border-radius:5px}
+.product-detail-page .product-category,.product-detail-page h2,.product-detail-page .product-brand,.product-detail-page .product-detail-price,.product-detail-page .detail-rating,.product-detail-page .detail-stock,.product-detail-page .product-short-description,.product-full-details,.product-review-panel{margin-left:20px;margin-right:20px}
+.product-detail-page .product-category{font-size:12px;margin-bottom:4px}
+.product-detail-page h2{font-size:20px;line-height:1.45;font-weight:500;margin-top:4px;margin-bottom:5px}
+.product-detail-page .product-brand{font-size:13px;color:#4776a8}
+.product-detail-page .product-detail-price{display:flex;align-items:center;gap:10px;font-size:24px;margin-top:16px;margin-bottom:14px}
+.product-detail-page .product-detail-price del{font-size:14px;color:#888}
+.detail-discount{font-size:12px;color:#d18a43;background:#fff1df;padding:3px 6px}
+.detail-rating{display:flex;align-items:center;gap:7px;font-size:13px;color:#4776a8}
+.detail-stock{color:#777;font-size:13px;margin-top:15px;margin-bottom:0}
+.product-short-description{font-size:14px;line-height:1.6;color:#48443d;margin-top:10px}
+.product-full-details,.product-review-panel{border-top:8px solid #f4f4f4;padding:18px 0;margin-top:20px}
+.product-full-details h3,.product-review-panel h3{font-size:17px;margin:0 0 10px}
+.product-full-details p,.product-review-panel p{font-size:13px;line-height:1.6;color:#6e6a62}
+.review-stars{display:flex;gap:7px}.review-stars button{padding:3px;border:0;background:transparent;color:#f0a51b}
+.product-detail-bottom{position:fixed;bottom:0;left:0;right:0;z-index:6;display:flex;align-items:center;gap:12px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #eee;box-shadow:0 -3px 12px #0000000b}
+.detail-home{width:58px;height:54px;flex:0 0 58px;border:1px solid #c58d4e;border-radius:5px;background:#fff;color:#c58d4e;display:grid;place-items:center}
+.detail-add-cart{height:54px;flex:1;border:0;border-radius:5px;background:#f7941d;color:#fff;font-size:16px;font-weight:600}
+@media(min-width:761px){.product-detail-page{inset:0 0 0 auto;width:min(720px,100%);box-shadow:-12px 0 40px #0002}.product-detail-page .product-detail-image{height:420px}}
