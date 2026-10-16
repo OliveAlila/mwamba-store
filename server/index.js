@@ -159,8 +159,16 @@ if (process.env.NODE_ENV === 'production') {
   app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
 }
 
-app.use((error, _req, res, _next) => {
-  if (process.env.NODE_ENV !== 'production') console.error(error);
+app.use((error, req, res, _next) => {
+  // Log safe diagnostics in production so failed sign-in/API requests can be traced
+  // without exposing SQL parameters, passwords, cookies, or secret environment values.
+  console.error('[api-error]', {
+    method: req.method,
+    path: req.path,
+    status: error.status || 500,
+    code: error.code || error.name || 'UNKNOWN_ERROR',
+    message: String(error.message || 'Unexpected server error').slice(0, 240),
+  });
   if (error.code === 'DB_CONFIG_MISSING') return res.status(503).json({ error: 'Database is not configured yet.' });
   if (error.code === 'ER_NO_SUCH_TABLE' || error.code === 'ER_BAD_FIELD_ERROR') return res.status(503).json({ error: 'Database schema is not installed or is out of date.' });
   if (error.code === 'ER_ACCESS_DENIED_ERROR' || error.code === 'ECONNREFUSED') return res.status(503).json({ error: 'Database connection failed. Check hosting database settings.' });
