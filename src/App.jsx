@@ -351,6 +351,16 @@ function App() {
     }
   }, [drawer, adminTab, user]);
 
+  // Automatically advance the product detail gallery, matching E-Style's carousel.
+  useEffect(() => {
+    const images = selectedProduct?.images || [];
+    if (drawer !== 'product' || images.length < 2) return undefined;
+    const timer = window.setInterval(() => {
+      setDetailImageIndex(index => (index + 1) % images.length);
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [drawer, selectedProduct?.id, selectedProduct?.images?.length]);
+
   // Resolve shareable product URLs after the catalogue has loaded.
   useEffect(() => {
     const match = pathname.match(/^\\/product\\/([^/]+)$/);
