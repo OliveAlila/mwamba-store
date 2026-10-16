@@ -66,17 +66,37 @@ function fallbackProductImage(product) {
 
 function normalizeProduct(product) {
   const price = Number(product.price || 0);
-  const oldPrice = Number(product.compare_at_price || price);
+  const oldPrice = Number(product.compare_at_price || product.old_price || price);
+  const parseImages = value => {
+    if (Array.isArray(value)) return value.filter(item => typeof item === 'string' && item.trim());
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed.filter(item => typeof item === 'string' && item.trim());
+      } catch {
+        // A single image URL is also a valid gallery source.
+        if (/^(https?:|\/\/|\/uploads\/)/i.test(value.trim())) return [value.trim()];
+      }
+    }
+    return [];
+  };
+  const primaryImage = product.image_url || product.image || fallbackProductImage(product);
+  const images = [
+    ...parseImages(product.images),
+    ...parseImages(product.images_json),
+    ...parseImages(product.gallery_images),
+  ].filter((image, index, all) => image && all.indexOf(image) === index);
+  if (primaryImage && !images.includes(primaryImage) && images.length === 0) images.push(primaryImage);
   return {
     ...product,
-    id: Number(product.id),
+    id: Number.isFinite(Number(product.id)) ? Number(product.id) : String(product.id),
     price,
     oldPrice,
     rating: Number(product.rating || 0),
     reviews: Number(product.reviews || 0),
     category: product.category || 'Uncategorised',
-    image: product.image_url || fallbackProductImage(product),
-    images: Array.isArray(product.images) ? product.images : (Array.isArray(product.images_json) ? product.images_json : (typeof product.images_json === 'string' ? (() => { try { return JSON.parse(product.images_json); } catch { return []; } })() : [])).filter(Boolean).length ? (Array.isArray(product.images) ? product.images : (Array.isArray(product.images_json) ? product.images_json : (() => { try { return JSON.parse(product.images_json || '[]'); } catch { return []; } })())).filter(Boolean) : [product.image_url || fallbackProductImage(product)],
+    image: primaryImage,
+    images: images.length ? images : [primaryImage],
     badge: oldPrice > price ? '−' + Math.round((1 - price / oldPrice) * 100) + '%' : '',
     art: '🛍️',
     tint: 'lavender',
