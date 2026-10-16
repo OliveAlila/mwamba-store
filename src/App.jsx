@@ -386,7 +386,7 @@ function App() {
   // Resolve shared product URLs on direct visits and after the catalogue finishes loading.
   // Also accept ?product=ID as a fallback for hosts/proxies that mishandle nested SPA paths.
   useEffect(() => {
-    const pathMatch = pathname.match(/^\\/product\\/([^/]+)\\/?$/);
+    const pathMatch = pathname.match(/^\/product\/([^/]+)\/?$/);
     const queryProductId = new URLSearchParams(window.location.search).get('product');
     const rawId = pathMatch ? pathMatch[1] : queryProductId;
     if (rawId == null || !products.length) return;
