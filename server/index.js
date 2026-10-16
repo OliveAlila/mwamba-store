@@ -42,9 +42,16 @@ app.use(cookieParser());
 
 // Allow explicitly configured frontends to read the public catalogue API.
 // Keep the origin allowlist exact; do not use wildcard origins with cookies.
-const allowedOrigins = new Set(
-  (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(origin => origin.trim()).filter(Boolean)
-);
+const allowedOrigins = new Set([
+  ...(process.env.CORS_ALLOWED_ORIGINS || '').split(','),
+  process.env.CLIENT_URL || '',
+  process.env.FRONTEND_URL || '',
+  process.env.VITE_SITE_URL || '',
+].map(value => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try { return new URL(trimmed).origin; } catch { return ''; }
+}).filter(Boolean));
 app.use((req, res, next) => {
   const origin = req.get('Origin');
   if (!origin) return next();
