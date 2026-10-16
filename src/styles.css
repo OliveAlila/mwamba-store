@@ -551,3 +551,60 @@
 .product-detail-main-image{animation:productGalleryIn .45s ease both}
 @media(prefers-reduced-motion:reduce){.product-detail-main-image{animation:none!important}.product-detail-thumbnails button{transition:none}}
 @media(max-width:480px){.product-image-preview-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.product-image-preview-tile img{height:86px}.product-detail-thumbnails{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:6px}.product-detail-thumbnails button{height:56px}}
+
+/* Desktop product details: spacious two-column layout like E-Style Fashion. */
+@media(min-width:900px){
+ .product-detail-page:has(.product-detail-content){
+  width:min(1180px,calc(100vw - 64px))!important;
+  max-width:1180px!important;
+  height:min(900px,calc(100vh - 48px))!important;
+  top:24px!important;right:50%!important;bottom:auto!important;
+  transform:translateX(50%)!important;
+  border-radius:14px!important;overflow-y:auto!important;
+ }
+ .product-detail-page:has(.product-detail-content) .product-detail-topbar{
+  position:sticky;top:0;z-index:5;
+ }
+ .product-detail-content{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr)!important;
+  column-gap:36px!important;row-gap:0!important;
+  align-items:start!important;
+  padding:24px 32px 36px!important;
+ }
+ .product-detail-page .product-detail-image{
+  grid-column:1!important;grid-row:1!important;
+  width:100%!important;height:min(58vh,580px)!important;
+  min-height:400px!important;max-height:580px!important;
+  border-radius:10px!important;margin:0 0 16px!important;
+  overflow:hidden;
+ }
+ .product-detail-thumbnails{
+  grid-column:1!important;grid-row:2!important;
+  display:flex!important;flex-wrap:nowrap!important;gap:10px!important;
+  overflow-x:auto!important;margin:0 0 24px!important;padding:2px 2px 8px!important;
+ }
+ .product-detail-thumbnails button{flex:0 0 76px!important;width:76px!important;height:76px!important}
+ .product-detail-page .product-category,
+ .product-detail-page .product-detail-content>h2,
+ .product-detail-page .product-brand,
+ .product-detail-page .product-detail-price,
+ .product-detail-page .detail-rating,
+ .product-detail-page .detail-stock,
+ .product-detail-page .product-short-description,
+ .product-detail-page .product-full-details,
+ .product-detail-page .product-review-panel{
+  grid-column:2!important;margin-left:0!important;margin-right:0!important;
+ }
+ .product-detail-page .product-category{grid-row:1!important;align-self:start;margin-top:0!important}
+ .product-detail-page .product-detail-content>h2{font-size:clamp(30px,3vw,44px)!important;line-height:1.15!important;margin-top:8px!important;margin-bottom:14px!important}
+ .product-detail-page .product-detail-price{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:20px!important;margin-bottom:18px!important}
+ .product-detail-page .product-detail-price strong{font-size:clamp(28px,2.6vw,38px)!important}
+ .product-detail-page .product-short-description{font-size:16px;line-height:1.7;margin-top:18px!important}
+ .product-detail-page .product-full-details,
+ .product-detail-page .product-review-panel{padding:20px 0;border-top:1px solid var(--line)}
+}
+@media(max-width:899px){
+ .product-detail-page:has(.product-detail-content){width:100%;max-width:100%}
+ .product-detail-content{display:block}
+}
