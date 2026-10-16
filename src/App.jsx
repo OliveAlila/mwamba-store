@@ -167,7 +167,7 @@ function App() {
   const [publicConfig, setPublicConfig] = useState(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
-  const [productForm, setProductForm] = useState({ name: '', description: '', category_id: '', price: '', compare_at_price: '', stock_quantity: '0', image_url: '' });
+  const [productForm, setProductForm] = useState({ name: '', description: '', category_id: '', price: '', compare_at_price: '', stock_quantity: '0', image_url: '', images: [] });
   const [editingProductId, setEditingProductId] = useState(null);
   const [productImageBusy, setProductImageBusy] = useState(false);
   const [infoPage, setInfoPage] = useState('');
@@ -533,14 +533,22 @@ function App() {
 
   const createProduct = async event => {
     event.preventDefault();
+    const primaryImage = String(productForm.image_url || '').trim();
+    const imageList = [...new Set([...(primaryImage ? [primaryImage] : []), ...(Array.isArray(productForm.images) ? productForm.images : [])].filter(Boolean))];
+    if (!imageList.length) {
+      setNotice('Add at least one product image using a URL or upload from your phone/computer.');
+      return;
+    }
+    if (imageList.length > 10) {
+      setNotice('A product can have at most 10 images.');
+      return;
+    }
     setAdminBusy(true);
     try {
-      if (!String(productForm.image_url || '').trim()) {
-        setNotice('Add a product image using a URL or upload one from your phone/computer.');
-        return;
-      }
       const payload = {
         ...productForm,
+        image_url: imageList[0],
+        images: imageList,
         price: Number(productForm.price),
         compare_at_price: productForm.compare_at_price === '' ? null : Number(productForm.compare_at_price),
         stock_quantity: Number(productForm.stock_quantity),
@@ -558,8 +566,10 @@ function App() {
   };
 
   const editProduct = product => {
+    const rawImages = Array.isArray(product.images) && product.images.length ? product.images : (Array.isArray(product.images_json) ? product.images_json : (typeof product.images_json === 'string' ? (() => { try { return JSON.parse(product.images_json); } catch { return []; } })() : []));
+    const images = [...new Set([...(product.image_url ? [product.image_url] : []), ...(rawImages || [])].filter(Boolean))].slice(0, 10);
     setEditingProductId(product.id);
-    setProductForm({ name: product.name || '', description: product.description || '', category_id: product.category_id ? String(product.category_id) : '', price: String(product.price ?? ''), compare_at_price: product.compare_at_price == null ? '' : String(product.compare_at_price), stock_quantity: String(product.stock_quantity ?? 0), image_url: product.image_url || '' });
+    setProductForm({ name: product.name || '', description: product.description || '', category_id: product.category_id ? String(product.category_id) : '', price: String(product.price ?? ''), compare_at_price: product.compare_at_price == null ? '' : String(product.compare_at_price), stock_quantity: String(product.stock_quantity ?? 0), image_url: images[0] || '', images });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const archiveProduct = async product => {
@@ -569,17 +579,54 @@ function App() {
     catch (error) { setNotice(formatApiError(error)); } finally { setAdminBusy(false); }
   };
   const uploadProductImage = async event => {
-    const file = event.target.files?.[0]; if (!file) return;
-    if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) { setNotice('Choose a JPG, PNG, WEBP or GIF image.'); event.target.value=''; return; }
-    if (file.size > 5*1024*1024) { setNotice('Choose an image smaller than 5 MB.'); event.target.value=''; return; }
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    const currentImages = [...new Set([...(productForm.image_url ? [productForm.image_url.trim()] : []), ...(productForm.images || [])].filter(Boolean))];
+    const remaining = 10 - currentImages.length;
+    if (files.length > remaining) {
+      setNotice('You can add ' + Math.max(remaining, 0) + ' more image(s). A product supports up to 10 images.');
+      event.target.value = '';
+      return;
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const invalid = files.find(file => !allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024);
+    if (invalid) {
+      setNotice(!allowedTypes.includes(invalid.type) ? 'Choose JPG, PNG, WEBP or GIF images only.' : 'Each image must be smaller than 5 MB.');
+      event.target.value = '';
+      return;
+    }
     setProductImageBusy(true);
     try {
-      const dataUrl = await new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload=()=>resolve(reader.result); reader.onerror=()=>reject(new Error('Could not read image.')); reader.readAsDataURL(file); });
-      const result = await api('/api/products/upload-image', { method:'POST', body:JSON.stringify({ image:dataUrl, filename:file.name }) });
-      setProductForm(old=>({...old,image_url:result.url})); setNotice('Image uploaded. Save the product to publish it.');
-    } catch(error) { setNotice(formatApiError(error)); } finally { setProductImageBusy(false); event.target.value=''; }
+      const uploadedUrls = [];
+      for (const file of files) {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('Could not read image.'));
+          reader.readAsDataURL(file);
+        });
+        const result = await api('/api/products/upload-image', { method: 'POST', body: JSON.stringify({ image: dataUrl, filename: file.name }) });
+        uploadedUrls.push(result.url);
+      }
+      setProductForm(old => {
+        const images = [...new Set([...(old.images || []), ...uploadedUrls])].slice(0, 10);
+        return { ...old, images, image_url: old.image_url || images[0] || '' };
+      });
+      setNotice(uploadedUrls.length + ' image(s) uploaded. Save the product to publish them.');
+    } catch (error) {
+      setNotice(formatApiError(error));
+    } finally {
+      setProductImageBusy(false);
+      event.target.value = '';
+    }
   };
 
+  const removeProductImage = image => {
+    setProductForm(old => {
+      const images = (old.images || []).filter(item => item !== image);
+      return { ...old, images, image_url: old.image_url === image ? (images[0] || '') : old.image_url };
+    });
+  };
   const updateOrderStatus = async (id, status) => {
     setAdminBusy(true);
     try {
@@ -703,9 +750,9 @@ function App() {
             <label>Price (KES)<input required type="number" min="1" step="0.01" value={productForm.price} onChange={e=>setProductForm({...productForm,price:e.target.value})}/></label>
             <label>Compare-at price (KES)<input type="number" min="0.01" step="0.01" value={productForm.compare_at_price} onChange={e=>setProductForm({...productForm,compare_at_price:e.target.value})}/></label>
             <label>Stock quantity<input type="number" min="0" step="1" value={productForm.stock_quantity} onChange={e=>setProductForm({...productForm,stock_quantity:e.target.value})}/></label>
-            <label className="wide-field">Image URL (optional if you upload a photo)<input type="text" inputMode="url" autoComplete="url" placeholder="https://… (or upload a photo below)" value={productForm.image_url} onChange={e=>setProductForm({...productForm,image_url:e.target.value})}/><small>Provide a secure HTTPS image URL, or upload an image from your phone/computer. At least one is required.</small></label>
-            <label className="wide-field upload-field">Upload from phone or computer<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={uploadProductImage} disabled={productImageBusy}/><small>{productImageBusy ? 'Uploading image…' : 'JPG, PNG, WEBP or GIF · maximum 5 MB'}</small></label>
-            {productForm.image_url && <div className="wide-field product-image-preview"><img src={productForm.image_url} alt="Product preview" onError={e=>{e.currentTarget.hidden=true;}}/><span>Image preview</span></div>}
+            <label className="wide-field">Image URL (optional)<input type="url" inputMode="url" autoComplete="url" placeholder="https://… add a primary image URL" value={productForm.image_url} onChange={e=>setProductForm({...productForm,image_url:e.target.value})}/><small>You can provide one HTTPS image URL and/or upload multiple photos below. Up to 10 images per product.</small></label>
+            <label className="wide-field upload-field">Upload multiple product images<input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" onChange={uploadProductImage} disabled={productImageBusy || (productForm.images || []).length >= 10}/><small>{productImageBusy ? 'Uploading selected images…' : 'JPG, PNG, WEBP or GIF · max 5 MB each · ' + (productForm.images || []).length + '/10 uploaded'}</small></label>
+            {(productForm.images || []).length > 0 && <div className="wide-field product-image-gallery-preview"><div className="product-image-gallery-heading"><strong>Product image gallery</strong><small>First image is the main photo. Select × to remove an image.</small></div><div className="product-image-preview-grid">{productForm.images.map((image,index)=><div className="product-image-preview-tile" key={image}><img src={image} alt={'Product image ' + (index+1)} onError={e=>{e.currentTarget.hidden=true;}}/><span>{image===productForm.image_url?'Main image':'Image ' + (index+1)}</span><button type="button" aria-label={'Remove image ' + (index+1)} onClick={()=>removeProductImage(image)}><X size={15}/></button></div>)}</div></div>}
             <label className="wide-field">Description<textarea rows="3" maxLength="10000" value={productForm.description} onChange={e=>setProductForm({...productForm,description:e.target.value})}/></label>
             <div className="form-actions"><button className="dark-btn" disabled={adminBusy || productImageBusy}>{editingProductId ? <Pencil size={16}/> : <Plus size={16}/>} {adminBusy ? 'Saving…' : editingProductId ? 'Update product' : 'Save product'}</button>{editingProductId && <button type="button" className="secondary-btn" onClick={()=>{setEditingProductId(null);setProductForm({name:'',description:'',category_id:'',price:'',compare_at_price:'',stock_quantity:'0',image_url:''});}}>Cancel edit</button>}</div>
           </form>
