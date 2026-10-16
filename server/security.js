@@ -63,11 +63,28 @@ export function requireAdmin(req, res, next) {
 export function requireSameOrigin(req, res, next) {
   const origin = req.get('origin');
   if (!origin) return next();
-  const host = req.get('host');
+
   try {
-    const parsed = new URL(origin);
-    if (parsed.host !== host) return res.status(403).json({ error: 'Cross-origin request blocked.' });
-    return next();
+    const parsedOrigin = new URL(origin);
+    const requestHost = req.get('host');
+    if (parsedOrigin.host === requestHost) return next();
+
+    // Support deployments where the frontend and API use separate hosts.
+    // Reuse the same explicit origin configuration as the global CORS middleware,
+    // and accept common frontend URL variable names to avoid silently rejecting login.
+    const configuredOrigins = [
+      ...(process.env.CORS_ALLOWED_ORIGINS || '').split(','),
+      process.env.CLIENT_URL || '',
+      process.env.FRONTEND_URL || '',
+      process.env.VITE_SITE_URL || '',
+    ].map(value => {
+      const trimmed = value.trim();
+      if (!trimmed) return '';
+      try { return new URL(trimmed).origin; } catch { return ''; }
+    }).filter(Boolean);
+
+    if (configuredOrigins.includes(parsedOrigin.origin)) return next();
+    return res.status(403).json({ error: 'Cross-origin request blocked. Configure the frontend origin in CORS_ALLOWED_ORIGINS or CLIENT_URL.' });
   } catch {
     return res.status(403).json({ error: 'Invalid request origin.' });
   }
