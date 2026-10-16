@@ -13,7 +13,12 @@ const uploadDir = path.resolve(here, '../uploads');
 router.post('/upload-image', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const image = typeof req.body?.image === 'string' ? req.body.image : '';
-    const match = image.match(/^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$/);
+    const images = Array.isArray(req.body?.images) ? req.body.images : (image ? [image] : []);
+    if (!images.length) return res.status(400).json({ error: 'Select at least one image.' });
+    if (images.length > 10) return res.status(400).json({ error: 'A product can have at most 10 images.' });
+    const uploaded = [];
+    for (const item of images) {
+    const match = (typeof item === 'string' ? item : '').match(/^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$/);
     if (!match) return res.status(400).json({ error: 'Upload a JPG, PNG, WEBP or GIF image.' });
     const mime = match[1];
     const buffer = Buffer.from(match[2], 'base64');
@@ -22,7 +27,9 @@ router.post('/upload-image', requireAuth, requireAdmin, async (req, res, next) =
     await mkdir(uploadDir, { recursive: true });
     const filename = randomUUID() + '.' + extension;
     await writeFile(path.join(uploadDir, filename), buffer, { flag: 'wx' });
-    return res.status(201).json({ url: '/uploads/' + filename });
+    uploaded.push('/uploads/' + filename);
+    }
+    return res.status(201).json({ url: uploaded[0], urls: uploaded });
   } catch (error) { return next(error); }
 });
 
@@ -43,7 +50,7 @@ router.get('/', async (req, res, next) => {
     }
     const products = await query(
       `SELECT p.id, p.name, p.slug, p.description, p.price, p.compare_at_price, p.stock_quantity,
-              p.sku, p.image_url, c.name AS category, p.created_at
+              p.sku, p.image_url, p.images_json, c.name AS category, p.created_at
        FROM products p LEFT JOIN categories c ON c.id = p.category_id
        WHERE ${where} ORDER BY p.created_at DESC LIMIT 100`,
       params
@@ -58,7 +65,7 @@ router.get('/admin/all', requireAuth, requireAdmin, async (_req, res, next) => {
   try {
     const products = await query(
       `SELECT p.id, p.name, p.slug, p.description, p.price, p.compare_at_price, p.stock_quantity,
-              p.sku, p.image_url, p.status, p.category_id, c.name AS category, p.created_at, p.updated_at
+              p.sku, p.image_url, p.images_json, p.status, p.category_id, c.name AS category, p.created_at, p.updated_at
        FROM products p LEFT JOIN categories c ON c.id = p.category_id
        ORDER BY p.updated_at DESC LIMIT 500`
     );
@@ -81,12 +88,16 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
     const categoryId = category_id == null || category_id === '' ? null : Number(category_id);
     const cleanSku = typeof sku === 'string' ? sku.trim() : sku;
     const cleanImage = typeof image_url === 'string' ? image_url.trim() : image_url;
+    const requestedImages = Array.isArray(req.body?.images) ? req.body.images : (cleanImage ? [cleanImage] : []);
+    const cleanImages = [...new Set(requestedImages.map(value => typeof value === 'string' ? value.trim() : '').filter(Boolean))];
+    if (cleanImages.length > 10) return res.status(400).json({ error: 'A product can have at most 10 images.' });
+    if (cleanImages.some(value => (!( /^https:\/\//i.test(value)) && !/^\/uploads\/[a-f0-9-]+\.(?:jpg|png|webp|gif)$/i.test(value)) || value.length > 2048)) return res.status(400).json({ error: 'Use valid HTTPS image URLs or uploaded image paths.' });
 
     if (cleanName.length < 2 || cleanName.length > 180 || !Number.isFinite(numericPrice) || numericPrice <= 0 ||
         !Number.isInteger(stock) || stock < 0 || stock > 100000000) {
       return res.status(400).json({ error: 'Product name, positive price and valid non-negative stock are required.' });
     }
-    if (!cleanImage || cleanImage === '') {
+    if (!cleanImages.length && (!cleanImage || cleanImage === '')) {
       return res.status(400).json({ error: 'Add an image URL or upload a product photo before saving.' });
     }
     if (compareAt !== null && (!Number.isFinite(compareAt) || compareAt < numericPrice)) {
@@ -110,9 +121,9 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
     }
     const slug = cleanName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 160) + '-' + Date.now().toString(36);
     const result = await query(
-      `INSERT INTO products (name, slug, description, category_id, price, compare_at_price, stock_quantity, sku, image_url, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
-      [cleanName, slug, description, categoryId, numericPrice, compareAt, stock, cleanSku || null, cleanImage || null]
+      `INSERT INTO products (name, slug, description, category_id, price, compare_at_price, stock_quantity, sku, image_url, images_json, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+      [cleanName, slug, description, categoryId, numericPrice, compareAt, stock, cleanSku || null, cleanImages[0] || cleanImage || null, JSON.stringify(cleanImages.length ? cleanImages : [cleanImage].filter(Boolean))]
     );
     const rows = await query('SELECT * FROM products WHERE id = ?', [result.insertId]);
     return res.status(201).json({ product: rows[0] });
@@ -129,12 +140,18 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     const existingRows = await query('SELECT * FROM products WHERE id = ? LIMIT 1', [id]);
     if (!existingRows.length) return res.status(404).json({ error: 'Product not found.' });
     const existing = existingRows[0];
-    const allowed = ['name', 'description', 'category_id', 'price', 'compare_at_price', 'stock_quantity', 'sku', 'image_url', 'status'];
+    const allowed = ['name', 'description', 'category_id', 'price', 'compare_at_price', 'stock_quantity', 'sku', 'image_url', 'images', 'status'];
     const entries = Object.entries(req.body || {}).filter(([key]) => allowed.includes(key));
     if (!entries.length) return res.status(400).json({ error: 'No editable product fields supplied.' });
 
     const updates = {};
     for (const [key, value] of entries) {
+      if (key === 'images') {
+        if (!Array.isArray(value) || value.length > 10 || value.some(image => typeof image !== 'string' || image.length > 2048 || (!( /^https:\/\//i.test(image)) && !/^\/uploads\/[a-f0-9-]+\.(?:jpg|png|webp|gif)$/i.test(image)))) return res.status(400).json({ error: 'Provide up to 10 valid product image URLs.' });
+        updates.images_json = JSON.stringify([...new Set(value.map(image => image.trim()).filter(Boolean))]);
+        if (!Object.hasOwn(req.body || {}, 'image_url') && updates.images_json !== '[]') updates.image_url = JSON.parse(updates.images_json)[0];
+        continue;
+      }
       if (key === 'price' && (!Number.isFinite(Number(value)) || Number(value) <= 0)) {
         return res.status(400).json({ error: 'Price must be positive.' });
       }
