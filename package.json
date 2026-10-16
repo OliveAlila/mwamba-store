@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "create-admin": "node scripts/create-admin.js"
+    "create-admin": "node scripts/create-admin.js",
+    "audit:security": "npm audit --audit-level=low"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
