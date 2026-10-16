@@ -379,7 +379,7 @@ function App() {
     if (images.length < 2) return undefined;
     const timer = window.setInterval(() => {
       setDetailImageIndex(current => ((Number.isFinite(current) ? current : 0) + 1) % images.length);
-    }, 3000);
+    }, 2000);
     return () => window.clearInterval(timer);
   }, [drawer, selectedProduct]);
 
