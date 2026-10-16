@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Search, ShoppingCart, Heart, UserRound, Menu, ChevronRight, ChevronDown, Share2, ChevronLeft, Boxes,
+  Search, ShoppingCart, Heart, UserRound, Menu, ChevronRight, ChevronDown, Share2, ChevronLeft,
   Zap, Truck, ShieldCheck, Headphones, Star, Plus, Minus, X, Package,
   LayoutDashboard, Boxes, ClipboardList, Users, BarChart3, Settings,
   Tag, ArrowRight, SlidersHorizontal, Smartphone, Shirt, House, Sparkles,
